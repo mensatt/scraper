@@ -2,12 +2,12 @@ namespace MensattScraper;
 
 public static class Converter
 {
-
     public enum TitleElement
     {
-        Name, Tag
+        Name,
+        Tag
     }
-    
+
     public static string ExtractElementFromTitle(string title, TitleElement titleElement)
     {
         var ret = string.Empty;
@@ -21,6 +21,8 @@ public static class Converter
                     break;
                 case ')':
                     isTag = false;
+                    if (titleElement == TitleElement.Tag)
+                        ret += ',';
                     break;
                 default:
                 {
@@ -41,10 +43,15 @@ public static class Converter
     }
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
-        ExtractElementFromTitle(title, TitleElement.Tag).Split(',');
+        ExtractElementFromTitle(title, TitleElement.Tag).Split(',').Where(x => !string.IsNullOrEmpty(x)).ToArray();
 
-    public static DateOnly GetDateFromTimestamp(int timestamp) => DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(timestamp).Date);
+    public static DateOnly GetDateFromTimestamp(int timestamp) =>
+        DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(timestamp).Date);
 
-    public static int EuroToCents(string cents) => int.Parse(cents.Replace(",", string.Empty));
+    public static int FloatToInt(string cents) =>
+        int.Parse(cents.Replace(",", string.Empty).Replace(".", String.Empty));
 
+    public static string[] GetSideDishes(string sideDishes) => ExtractElementFromTitle(sideDishes, TitleElement.Name)
+        .Replace("Wahlbeilagen: ", string.Empty).Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x))
+        .ToArray();
 }
