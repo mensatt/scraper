@@ -1,6 +1,6 @@
 ﻿using System.Xml.Serialization;
 
-namespace MensattScraper.Compat;
+namespace MensattScraper.SourceCompat;
 
 [XmlRoot("speiseplan")]
 public class Speiseplan
