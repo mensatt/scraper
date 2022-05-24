@@ -33,16 +33,21 @@ public class Program
 
     private const string InsertOccurrenceTagSql = $"INSERT INTO occurrence_tag VALUES (@occurrence, @tag)";
 
+    private const string DeleteOccurrenceByUuidSql = $"DELETE FROM occurrence WHERE id=@id";
 
     private static Program? _instance;
 
     private NpgsqlConnection _dbConnection;
 
+
+    private NpgsqlCommand _selectDishCommand;
+
     private NpgsqlCommand _insertDishCommand;
     private NpgsqlCommand _insertOccurrenceCommand;
     private NpgsqlCommand _insertOccurrenceSideDishCommand;
     private NpgsqlCommand _insertOccurrenceTagCommand;
-    private NpgsqlCommand _selectDishCommand;
+
+    private NpgsqlCommand _deleteOccurrenceCommand;
 
     private Program()
     {
@@ -64,11 +69,12 @@ public class Program
 
         _dbConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
 
+        _selectDishCommand = PrepareSelectIdForDishCommand();
         _insertDishCommand = PrepareInsertDishCommand();
         _insertOccurrenceCommand = PrepareInsertOccurrenceCommand();
         _insertOccurrenceSideDishCommand = PrepareInsertOccurrenceSideDishCommand();
         _insertOccurrenceTagCommand = PrepareInsertOccurrenceTagCommand();
-        _selectDishCommand = PrepareSelectIdForDishCommand();
+        _deleteOccurrenceCommand = PrepareDeleteOccurrenceCommand();
     }
 
     private void Scrape()
@@ -76,10 +82,13 @@ public class Program
         var client = new HttpClient();
         var serializer = new XmlSerializer(typeof(Speiseplan));
 
+        // Dict<01.01.1970, List<Dish UUID -> Occurrence UUID>>
+        var dailyOccurrences = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
+
         while (true)
         {
             //client.GetStreamAsync(ApiUrl).Result
-            using var reader = File.OpenRead("mensa-sued.xml");
+            using var reader = File.OpenRead("testing.xml");
 
             var menu = (Speiseplan?) serializer.Deserialize(reader);
 
@@ -91,10 +100,20 @@ public class Program
 
             foreach (var current in menu.Tags)
             {
+                var currentDay = Converter.GetDateFromTimestamp(current.Timestamp);
+                var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
+                bool firstPullOfTheDay;
+                if (!dailyOccurrences.ContainsKey(currentDay))
+                {
+                    dailyOccurrences.Add(currentDay, new List<Tuple<Guid, Guid>>());
+                    firstPullOfTheDay = true;
+                }
+                else
+                {
+                    firstPullOfTheDay = false;
+                }
 
-
-
-                //var current = menu.Tags.OrderByDescending(x => x.Timestamp).First();
+                var dailyDishes = new HashSet<Guid>();
 
                 foreach (var item in current.Items)
                 {
@@ -109,10 +128,26 @@ public class Program
                         dishUuid = (Guid?) _selectDishCommand.ExecuteScalar();
                     }
 
+                    dailyDishes.Add(dishUuid.Value);
 
-                    FillOccurrenceCommand(current, item, dishUuid.Value, ReviewStatus.AWAITING_APPROVAL);
+                    var occurrenceStatus = firstPullOfTheDay ? ReviewStatus.AWAITING_APPROVAL : ReviewStatus.UPDATED;
 
+                    // If this after the day after tomorrow, we just delete occurrences (where the dish doesn't exist anymore)
+                    if (!firstPullOfTheDay && isInFarFuture)
+                    {
+                        var savedDishOccurrence = dailyOccurrences[currentDay].Find(x => x.Item1 == dishUuid);
+
+                        // If we have seen this dish already, skip it
+                        if (savedDishOccurrence is not null)
+                            continue; // Update here eventually
+
+                        // New dish, so it needs to await approval
+                        occurrenceStatus = ReviewStatus.AWAITING_APPROVAL;
+                    }
+
+                    FillOccurrenceCommand(current, item, dishUuid.Value, occurrenceStatus);
                     var occurrenceUuid = (Guid) _insertOccurrenceCommand.ExecuteScalar();
+                    dailyOccurrences[currentDay].Add(new(dishUuid.Value, occurrenceUuid));
 
                     foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
                     {
@@ -137,11 +172,32 @@ public class Program
                         _insertOccurrenceSideDishCommand.ExecuteNonQuery();
                     }
                 }
+
+                // Delete all dishes, that were removed on a day which is more than two days in the future
+                if (isInFarFuture)
+                {
+                    foreach (var previousDish in dailyOccurrences[currentDay])
+                    {
+                        // If this dish does not exist in the current XML, delete it
+                        if (!dailyDishes.Contains(previousDish.Item1))
+                        {
+                            // Delete
+                            FillDeleteOccurrenceCommand(previousDish.Item1);
+                            try
+                            {
+                                _deleteOccurrenceCommand.ExecuteNonQuery();
+                            }
+                            catch
+                            {
+                                Console.Error.WriteLine("Could not delete old occurrence");
+                            }
+                        }
+                    }
+                }
             }
 
 
             // Thread.Sleep(ScrapeDelayInSeconds * 1000);
-            break;
         }
 
         _dbConnection.Dispose();
@@ -156,8 +212,8 @@ public class Program
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(tag.Timestamp);
         _insertOccurrenceCommand.Parameters["review_status"].Value = status;
-        _insertOccurrenceCommand.Parameters["kj"].Value = Converter.FloatToInt(item.Kj);
-        _insertOccurrenceCommand.Parameters["kcal"].Value = Converter.FloatToInt(item.Kcal);
+        _insertOccurrenceCommand.Parameters["kj"].Value = Converter.FloatToInt(item.Kj) / 1000;
+        _insertOccurrenceCommand.Parameters["kcal"].Value = Converter.FloatToInt(item.Kcal) / 1000;
         _insertOccurrenceCommand.Parameters["fat"].Value = Converter.FloatToInt(item.Fett);
         _insertOccurrenceCommand.Parameters["saturated_fat"].Value = Converter.FloatToInt(item.Gesfett);
         _insertOccurrenceCommand.Parameters["carbohydrates"].Value = Converter.FloatToInt(item.Kh);
@@ -184,7 +240,13 @@ public class Program
 
     private void FillSelectDishCommand(string name)
     {
-        _selectDishCommand.Parameters["name"].Value = Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name);
+        _selectDishCommand.Parameters["name"].Value =
+            Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name);
+    }
+
+    private void FillDeleteOccurrenceCommand(Guid id)
+    {
+        _deleteOccurrenceCommand.Parameters["id"].Value = id;
     }
 
     private NpgsqlCommand PrepareInsertDishCommand()
@@ -239,5 +301,13 @@ public class Program
         selectIdCommand.Parameters.Add("name", NpgsqlDbType.Varchar);
         selectIdCommand.Prepare();
         return selectIdCommand;
+    }
+
+    private NpgsqlCommand PrepareDeleteOccurrenceCommand()
+    {
+        var deleteOccurrenceCommand = new NpgsqlCommand(DeleteOccurrenceByUuidSql, _dbConnection);
+        deleteOccurrenceCommand.Parameters.Add("id", NpgsqlDbType.Uuid);
+        deleteOccurrenceCommand.Prepare();
+        return deleteOccurrenceCommand;
     }
 }
