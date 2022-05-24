@@ -43,13 +43,12 @@ public static class Converter
     }
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
-        ExtractElementFromTitle(title, TitleElement.Tag).Split(',').Where(x => !string.IsNullOrEmpty(x)).ToArray();
+        ExtractElementFromTitle(title.Replace("Cfebar", ""), TitleElement.Tag).Split(',').Where(x => !string.IsNullOrEmpty(x)).ToArray();
 
     public static DateOnly GetDateFromTimestamp(int timestamp) =>
         DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(timestamp).Date);
 
-    public static int FloatToInt(string cents) =>
-        int.Parse(cents.Replace(",", string.Empty).Replace(".", String.Empty));
+    public static int FloatToInt(string cents) => string.IsNullOrEmpty(cents.Trim()) ? 0 : int.Parse(cents.Replace(",", string.Empty).Replace(".", string.Empty));
 
     public static string[] GetSideDishes(string sideDishes) => ExtractElementFromTitle(sideDishes, TitleElement.Name)
         .Replace("Wahlbeilagen: ", string.Empty).Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x))

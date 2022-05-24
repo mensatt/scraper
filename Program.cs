@@ -89,47 +89,53 @@ public class Program
                 continue;
             }
 
-            var current = menu.Tags.OrderByDescending(x => x.Timestamp).First();
-
-            foreach (var item in current.Items)
+            foreach (var current in menu.Tags)
             {
-                FillDishCommand(item.Title);
-                var dishUuid = (Guid?) _insertDishCommand.ExecuteScalar();
 
-                // RETURNING id does not get executed, if there is a conflict
-                // Thus we need to fetch the existing UUID explicitly
-                if (!dishUuid.HasValue)
+
+
+                //var current = menu.Tags.OrderByDescending(x => x.Timestamp).First();
+
+                foreach (var item in current.Items)
                 {
-                    FillSelectDishCommand(item.Title);
-                    dishUuid = (Guid?) _selectDishCommand.ExecuteScalar();
-                }
+                    FillDishCommand(item.Title);
+                    var dishUuid = (Guid?) _insertDishCommand.ExecuteScalar();
 
-
-                FillOccurrenceCommand(current, item, dishUuid.Value, ReviewStatus.AWAITING_APPROVAL);
-
-                var occurrenceUuid = (Guid) _insertOccurrenceCommand.ExecuteScalar();
-
-                foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
-                {
-                    FillTagCommand(occurrenceUuid, tag);
-                    _insertOccurrenceTagCommand.ExecuteNonQuery();
-                }
-
-                foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
-                {
-                    FillSelectDishCommand(sideDish);
-                    var sideDishUuid = (Guid?) _selectDishCommand.ExecuteScalar();
-                    if (!sideDishUuid.HasValue)
+                    // RETURNING id does not get executed, if there is a conflict
+                    // Thus we need to fetch the existing UUID explicitly
+                    if (!dishUuid.HasValue)
                     {
-                        FillDishCommand(sideDish);
-                        FillSideDishCommand(occurrenceUuid, (Guid) _insertDishCommand.ExecuteScalar());
-                    }
-                    else
-                    {
-                        FillSideDishCommand(occurrenceUuid, sideDishUuid.Value);
+                        FillSelectDishCommand(item.Title);
+                        dishUuid = (Guid?) _selectDishCommand.ExecuteScalar();
                     }
 
-                    _insertOccurrenceSideDishCommand.ExecuteNonQuery();
+
+                    FillOccurrenceCommand(current, item, dishUuid.Value, ReviewStatus.AWAITING_APPROVAL);
+
+                    var occurrenceUuid = (Guid) _insertOccurrenceCommand.ExecuteScalar();
+
+                    foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
+                    {
+                        FillTagCommand(occurrenceUuid, tag);
+                        _insertOccurrenceTagCommand.ExecuteNonQuery();
+                    }
+
+                    foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
+                    {
+                        FillSelectDishCommand(sideDish);
+                        var sideDishUuid = (Guid?) _selectDishCommand.ExecuteScalar();
+                        if (!sideDishUuid.HasValue)
+                        {
+                            FillDishCommand(sideDish);
+                            FillSideDishCommand(occurrenceUuid, (Guid) _insertDishCommand.ExecuteScalar());
+                        }
+                        else
+                        {
+                            FillSideDishCommand(occurrenceUuid, sideDishUuid.Value);
+                        }
+
+                        _insertOccurrenceSideDishCommand.ExecuteNonQuery();
+                    }
                 }
             }
 
@@ -178,7 +184,7 @@ public class Program
 
     private void FillSelectDishCommand(string name)
     {
-        _selectDishCommand.Parameters["name"].Value = name;
+        _selectDishCommand.Parameters["name"].Value = Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name);
     }
 
     private NpgsqlCommand PrepareInsertDishCommand()
@@ -210,20 +216,16 @@ public class Program
         var insertOccurrenceCommand = new NpgsqlCommand(InsertOccurrenceSql, _dbConnection);
         insertOccurrenceCommand.Parameters.Add("dish", NpgsqlDbType.Uuid);
         insertOccurrenceCommand.Parameters.Add("date", NpgsqlDbType.Date);
-        insertOccurrenceCommand.Parameters.Add(new NpgsqlParameter
-        {
-            ParameterName = "review_status",
-            Value = ReviewStatus.AWAITING_APPROVAL
-        });
-        insertOccurrenceCommand.Parameters.Add("kj", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("kcal", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("fat", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("saturated_fat", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("carbohydrates", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("sugar", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("fiber", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("protein", NpgsqlDbType.Real);
-        insertOccurrenceCommand.Parameters.Add("salt", NpgsqlDbType.Real);
+        insertOccurrenceCommand.Parameters.Add("review_status", NpgsqlDbType.Unknown);
+        insertOccurrenceCommand.Parameters.Add("kj", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("kcal", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("fat", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("saturated_fat", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("carbohydrates", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("sugar", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("fiber", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("protein", NpgsqlDbType.Integer);
+        insertOccurrenceCommand.Parameters.Add("salt", NpgsqlDbType.Integer);
         insertOccurrenceCommand.Parameters.Add("price_student", NpgsqlDbType.Integer);
         insertOccurrenceCommand.Parameters.Add("price_staff", NpgsqlDbType.Integer);
         insertOccurrenceCommand.Parameters.Add("price_guest", NpgsqlDbType.Integer);
