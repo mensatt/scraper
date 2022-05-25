@@ -78,9 +78,14 @@ public static class Converter
         return DateOnly.FromDateTime(utcTimestamp.Add(offsetToCest).Date);
     }
 
-    public static int? FloatToInt(string? cents) => (string.IsNullOrEmpty(cents) || cents == "-")
-        ? null
-        : int.Parse(cents.Replace(",", string.Empty).Replace(".", string.Empty));
+    public static int? FloatStringToInt(string? cents)
+    {
+        if (string.IsNullOrEmpty(cents) || cents == "-")
+            return null;
+        if (int.TryParse(cents.Replace(",", string.Empty).Replace(".", string.Empty), out var ret))
+            return ret;
+        return null;
+    }
 
     public static string[] GetSideDishes(string sideDishes) => ExtractElementFromTitle(sideDishes, TitleElement.Name)
         .Replace("Wahlbeilagen: ", string.Empty).Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x))
