@@ -9,5 +9,5 @@ public class Speiseplan
     public int LocationId { get; set; }
 
     [XmlElement("tag")]
-    public Tag[] Tags { get; set; }
+    public Tag[]? Tags { get; set; }
 }

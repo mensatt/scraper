@@ -36,17 +36,17 @@ public class Program
 
     private static Program? _instance;
 
-    private NpgsqlConnection _dbConnection;
+    private NpgsqlConnection _dbConnection = null!;
 
 
-    private NpgsqlCommand _selectDishCommand;
+    private NpgsqlCommand _selectDishCommand = null!;
 
-    private NpgsqlCommand _insertDishCommand;
-    private NpgsqlCommand _insertOccurrenceCommand;
-    private NpgsqlCommand _insertOccurrenceSideDishCommand;
-    private NpgsqlCommand _insertOccurrenceTagCommand;
+    private NpgsqlCommand _insertDishCommand = null!;
+    private NpgsqlCommand _insertOccurrenceCommand = null!;
+    private NpgsqlCommand _insertOccurrenceSideDishCommand = null!;
+    private NpgsqlCommand _insertOccurrenceTagCommand = null!;
 
-    private NpgsqlCommand _deleteOccurrenceCommand;
+    private NpgsqlCommand _deleteOccurrenceCommand = null!;
 
     private Program()
     {
@@ -78,7 +78,7 @@ public class Program
 
     private void Scrape()
     {
-        // var client = new HttpClient();
+        var client = new HttpClient();
         var serializer = new XmlSerializer(typeof(Speiseplan));
 
         // Dict<01.01.1970, List<Dish UUID -> Occurrence UUID>>

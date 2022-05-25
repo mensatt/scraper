@@ -78,7 +78,7 @@ public static class Converter
         return DateOnly.FromDateTime(utcTimestamp.Add(offsetToCest).Date);
     }
 
-    public static int? FloatToInt(string cents) => (string.IsNullOrEmpty(cents) || cents == "-")
+    public static int? FloatToInt(string? cents) => (string.IsNullOrEmpty(cents) || cents == "-")
         ? null
         : int.Parse(cents.Replace(",", string.Empty).Replace(".", string.Empty));
 
