@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MensattScraper", "MensattScraper.csproj", "{AAD301C1-5BF9-4353-918E-CBA4D8310188}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MensattScraper", "MensattScraper\MensattScraper.csproj", "{33D0EE48-CCEA-41F8-B1A7-EFB0A820D736}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MensattScraper.Tests", "MensattScraper.Tests\MensattScraper.Tests.csproj", "{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -8,9 +10,13 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{AAD301C1-5BF9-4353-918E-CBA4D8310188}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AAD301C1-5BF9-4353-918E-CBA4D8310188}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AAD301C1-5BF9-4353-918E-CBA4D8310188}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AAD301C1-5BF9-4353-918E-CBA4D8310188}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33D0EE48-CCEA-41F8-B1A7-EFB0A820D736}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33D0EE48-CCEA-41F8-B1A7-EFB0A820D736}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33D0EE48-CCEA-41F8-B1A7-EFB0A820D736}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33D0EE48-CCEA-41F8-B1A7-EFB0A820D736}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

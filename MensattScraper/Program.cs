@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Data;
+using System.Diagnostics;
 using System.Globalization;
 using System.Xml.Serialization;
 using MensattScraper.DestinationCompat;
@@ -85,10 +86,16 @@ public class Program
         // Dict<01.01.1970, List<Dish UUID -> Occurrence UUID>>
         var dailyOccurrences = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
 
-        while (true)
+        var timer = new Stopwatch();
+
+        foreach (var file in Directory.EnumerateFiles("content"))
         {
+            
+            timer.Restart();
+            Console.Write("Now reading " + file);
+            
             //client.GetStreamAsync(ApiUrl).Result
-            using var reader = File.OpenRead("testing.xml");
+            using var reader = File.OpenRead(file);
 
             var menu = (Speiseplan?) serializer.Deserialize(reader);
 
@@ -98,10 +105,16 @@ public class Program
                 continue;
             }
 
+            if (menu.Tags is null)
+            {
+                Console.Error.WriteLine("Menu Tag was null");
+                continue;
+            }
+
             foreach (var current in menu.Tags)
             {
                 var currentDay = Converter.GetDateFromTimestamp(current.Timestamp);
-                var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
+                var isInFarFuture = true || DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
                 bool firstPullOfTheDay;
                 if (!dailyOccurrences.ContainsKey(currentDay))
                 {
@@ -117,6 +130,11 @@ public class Program
 
                 foreach (var item in current.Items)
                 {
+                    // This gets shown as a placeholder, before the different kinds of pizza are known
+                    if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
+                        continue;
+
+
                     FillDishCommand(item.Title);
                     var dishUuid = (Guid?) _insertDishCommand.ExecuteScalar();
 
@@ -132,17 +150,17 @@ public class Program
 
                     var occurrenceStatus = firstPullOfTheDay ? ReviewStatus.AWAITING_APPROVAL : ReviewStatus.UPDATED;
 
-                    // If this after the day after tomorrow, we just delete occurrences (where the dish doesn't exist anymore)
-                    if (!firstPullOfTheDay && isInFarFuture)
+                    if (!firstPullOfTheDay)
                     {
                         var savedDishOccurrence = dailyOccurrences[currentDay].Find(x => x.Item1 == dishUuid);
 
-                        // If we have seen this dish already, skip it
+                        // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
-                            continue; // Update here eventually
+                            continue; // Update in the future
 
-                        // New dish, so it needs to await approval
-                        occurrenceStatus = ReviewStatus.AWAITING_APPROVAL;
+                        // If it is in the far future, the old one will be replaced by this
+                        if (isInFarFuture)
+                            occurrenceStatus = ReviewStatus.AWAITING_APPROVAL;
                     }
 
                     FillOccurrenceCommand(current, item, dishUuid.Value, occurrenceStatus);
@@ -197,6 +215,7 @@ public class Program
             }
 
 
+            Console.WriteLine(" --> this took " + timer.ElapsedMilliseconds + "ms");
             // Thread.Sleep(ScrapeDelayInSeconds * 1000);
         }
 
@@ -212,18 +231,30 @@ public class Program
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(tag.Timestamp);
         _insertOccurrenceCommand.Parameters["review_status"].Value = status;
-        _insertOccurrenceCommand.Parameters["kj"].Value = Converter.FloatToInt(item.Kj) / 1000;
-        _insertOccurrenceCommand.Parameters["kcal"].Value = Converter.FloatToInt(item.Kcal) / 1000;
-        _insertOccurrenceCommand.Parameters["fat"].Value = Converter.FloatToInt(item.Fett);
-        _insertOccurrenceCommand.Parameters["saturated_fat"].Value = Converter.FloatToInt(item.Gesfett);
-        _insertOccurrenceCommand.Parameters["carbohydrates"].Value = Converter.FloatToInt(item.Kh);
-        _insertOccurrenceCommand.Parameters["sugar"].Value = Converter.FloatToInt(item.Zucker);
-        _insertOccurrenceCommand.Parameters["fiber"].Value = Converter.FloatToInt(item.Ballaststoffe);
-        _insertOccurrenceCommand.Parameters["protein"].Value = Converter.FloatToInt(item.Eiweiss);
-        _insertOccurrenceCommand.Parameters["salt"].Value = Converter.FloatToInt(item.Salz);
-        _insertOccurrenceCommand.Parameters["price_student"].Value = Converter.FloatToInt(item.Preis1);
-        _insertOccurrenceCommand.Parameters["price_staff"].Value = Converter.FloatToInt(item.Preis2);
-        _insertOccurrenceCommand.Parameters["price_guest"].Value = Converter.FloatToInt(item.Preis3);
+        var kj = Converter.FloatToInt(item.Kj);
+        _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 1000;
+        var kcal = Converter.FloatToInt(item.Kcal);
+        _insertOccurrenceCommand.Parameters["kcal"].Value = kcal == null ? DBNull.Value : (int) kcal / 1000;
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fat"], Converter.FloatToInt(item.Fett));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["saturated_fat"],
+            Converter.FloatToInt(item.Gesfett));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["carbohydrates"], Converter.FloatToInt(item.Kh));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["sugar"], Converter.FloatToInt(item.Zucker));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fiber"],
+            Converter.FloatToInt(item.Ballaststoffe));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["protein"], Converter.FloatToInt(item.Eiweiss));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["salt"], Converter.FloatToInt(item.Salz));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_student"],
+            Converter.FloatToInt(item.Preis1));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_staff"],
+            Converter.FloatToInt(item.Preis2));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_guest"],
+            Converter.FloatToInt(item.Preis3));
+    }
+
+    private void SetParameterToValueOrNull(IDataParameter param, int? value)
+    {
+        param.Value = value.HasValue ? value : DBNull.Value;
     }
 
     private void FillSideDishCommand(Guid occurrence, Guid sideDish)
