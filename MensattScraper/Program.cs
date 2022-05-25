@@ -1,10 +1,8 @@
 ﻿using System.Data;
 using System.Diagnostics;
-using System.Globalization;
 using System.Xml.Serialization;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
-using Microsoft.VisualBasic.CompilerServices;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -80,7 +78,7 @@ public class Program
 
     private void Scrape()
     {
-        var client = new HttpClient();
+        // var client = new HttpClient();
         var serializer = new XmlSerializer(typeof(Speiseplan));
 
         // Dict<01.01.1970, List<Dish UUID -> Occurrence UUID>>
@@ -90,10 +88,9 @@ public class Program
 
         foreach (var file in Directory.EnumerateFiles("content"))
         {
-            
             timer.Restart();
             Console.Write("Now reading " + file);
-            
+
             //client.GetStreamAsync(ApiUrl).Result
             using var reader = File.OpenRead(file);
 
