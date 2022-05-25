@@ -68,6 +68,8 @@ public class ConverterExtractElementFromTitle
     [InlineData("(Wz,So,Mi,Ge)", "")]
     [InlineData("My (1) dear (Wz) so (Hafer) many (30) tags (V)", "My dear so many tags")]
     [InlineData("Hackbraten (Wz,Ei,So,Sen) mit Jus (1,Wz,Sel,Ge) Kartoffel-Kräuterpüree (7,12,Mi)", "Hackbraten mit Jus Kartoffel-Kräuterpüree")]
+    [InlineData("Vegane Currywurst mit Soße und Pommes frites(Wz)", "Vegane Currywurst mit Soße und Pommes frites")]
+    [InlineData("Putenschnitzel (Wz) und Remouladensoße (4,5,Wz,Ei,So,Mi)und Chips (Wz)", "Putenschnitzel und Remouladensoße und Chips")]
     public void TitleWithTagParentheses(string title, string expected)
     {
         var result = Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);

@@ -1,4 +1,7 @@
+using System.ComponentModel;
 using System.Globalization;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
 
 namespace MensattScraper;
 
@@ -61,7 +64,7 @@ public static class Converter
                 if (titleElement == TitleElement.Tag)
                     output += content + ',';
                 else if ((start - currentParenthesisIndex - 2) > 0)
-                    output += title.Substring(currentParenthesisIndex, start - currentParenthesisIndex - 2);
+                    output += title.Substring(currentParenthesisIndex, start - currentParenthesisIndex - 1);
             }
             else if (titleElement == TitleElement.Name)
             {
@@ -71,8 +74,11 @@ public static class Converter
             currentParenthesisIndex = end + 1;
         }
 
-        return output.Trim(' ', ',');
+        return RemoveMultipleWhiteSpaces(output.Trim(' ', ','));
     }
+
+    public static string RemoveMultipleWhiteSpaces(string input) =>
+        string.Join(' ', input.Split(' ').Where(x => !string.IsNullOrEmpty(x)));
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
         ExtractElementFromTitle(title.Replace("Cfebar", "").Replace("Hf", ""), TitleElement.Tag).Split(',')
