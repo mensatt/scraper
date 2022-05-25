@@ -235,11 +235,14 @@ public class Program
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fat"], Converter.FloatStringToInt(item.Fett));
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["saturated_fat"],
             Converter.FloatStringToInt(item.Gesfett));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["carbohydrates"], Converter.FloatStringToInt(item.Kh));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["sugar"], Converter.FloatStringToInt(item.Zucker));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["carbohydrates"],
+            Converter.FloatStringToInt(item.Kh));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["sugar"],
+            Converter.FloatStringToInt(item.Zucker));
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fiber"],
             Converter.FloatStringToInt(item.Ballaststoffe));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["protein"], Converter.FloatStringToInt(item.Eiweiss));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["protein"],
+            Converter.FloatStringToInt(item.Eiweiss));
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["salt"], Converter.FloatStringToInt(item.Salz));
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_student"],
             Converter.FloatStringToInt(item.Preis1));

@@ -22,6 +22,13 @@ public static class Converter
     {
         if (string.IsNullOrEmpty(title) || !title.Contains('('))
             return titleElement == TitleElement.Name ? title : string.Empty;
+
+        if (title.Count(x => x == '(') != title.Count(x => x == ')'))
+        {
+            Console.Error.WriteLine("Mismatched parentheses, Mode: " + titleElement + ", Title:`" + title + "`");
+            return string.Empty;
+        }
+
         var output = string.Empty;
         var currentParenthesisIndex = 0;
         while (currentParenthesisIndex < title.Length)
@@ -37,9 +44,11 @@ public static class Converter
             start++;
             var end = title.IndexOf(')', start);
 
+            // There should be no way for this condition to be true (according to the constraints placed above),
+            // but I left it here for safety reasons
             if (end == -1)
             {
-                Console.Error.WriteLine("Mismatched parentheses");
+                Console.Error.WriteLine("Mismatched parentheses, Mode: " + titleElement + ", Title:`" + title + "`");
                 return string.Empty;
             }
 
@@ -51,7 +60,7 @@ public static class Converter
             {
                 if (titleElement == TitleElement.Tag)
                     output += content + ',';
-                else
+                else if ((start - currentParenthesisIndex - 2) > 0)
                     output += title.Substring(currentParenthesisIndex, start - currentParenthesisIndex - 2);
             }
             else if (titleElement == TitleElement.Name)
