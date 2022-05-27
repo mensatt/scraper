@@ -43,8 +43,9 @@ public class Program
 
     private NpgsqlCommand _insertDishCommand = null!;
     private NpgsqlCommand _insertOccurrenceCommand = null!;
-    private NpgsqlCommand _insertOccurrenceSideDishCommand = null!;
-    private NpgsqlCommand _insertOccurrenceTagCommand = null!;
+    
+    private NpgsqlBatchCommand _insertOccurrenceSideDishCommand = null!;
+    private NpgsqlBatchCommand _insertOccurrenceTagCommand = null!;
 
     private NpgsqlCommand _deleteOccurrenceCommand = null!;
 
@@ -86,8 +87,10 @@ public class Program
 
         var timer = new Stopwatch();
 
-        foreach (var file in Directory.EnumerateFiles("content"))
+        foreach (var file in Directory.EnumerateFiles("."))
         {
+            if(!file.EndsWith("xml"))
+                continue;
             timer.Restart();
             Console.Write("Now reading " + file);
 
@@ -125,6 +128,10 @@ public class Program
 
                 var dailyDishes = new HashSet<Guid>();
 
+                
+                var occurrenceOptionalsBatch = new NpgsqlBatch(_dbConnection);
+
+                
                 foreach (var item in current.Items)
                 {
                     // This gets shown as a placeholder, before the different kinds of pizza are known
@@ -166,10 +173,11 @@ public class Program
 
                     foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
                     {
-                        FillTagCommand(occurrenceUuid, tag);
-                        _insertOccurrenceTagCommand.ExecuteNonQuery();
+                        FillNewTagCommand(occurrenceUuid, tag);
+                        occurrenceOptionalsBatch.BatchCommands.Add(_insertOccurrenceTagCommand);
                     }
 
+                    
                     foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
                     {
                         FillSelectDishCommand(sideDish);
@@ -177,16 +185,19 @@ public class Program
                         if (!sideDishUuid.HasValue)
                         {
                             FillDishCommand(sideDish);
-                            FillSideDishCommand(occurrenceUuid, (Guid) _insertDishCommand.ExecuteScalar());
+                            FillNewSideDishCommand(occurrenceUuid, (Guid) _insertDishCommand.ExecuteScalar());
                         }
                         else
                         {
-                            FillSideDishCommand(occurrenceUuid, sideDishUuid.Value);
+                            FillNewSideDishCommand(occurrenceUuid, sideDishUuid.Value);
                         }
-
-                        _insertOccurrenceSideDishCommand.ExecuteNonQuery();
+                        
+                        occurrenceOptionalsBatch.BatchCommands.Add(_insertOccurrenceSideDishCommand);
                     }
                 }
+
+                occurrenceOptionalsBatch.ExecuteNonQuery();
+
 
                 // Delete all dishes, that were removed on a day which is more than two days in the future
                 if (isInFarFuture)
@@ -257,14 +268,16 @@ public class Program
         param.Value = value.HasValue ? value : DBNull.Value;
     }
 
-    private void FillSideDishCommand(Guid occurrence, Guid sideDish)
+    private void FillNewSideDishCommand(Guid occurrence, Guid sideDish)
     {
+        _insertOccurrenceSideDishCommand = PrepareInsertOccurrenceSideDishCommand();
         _insertOccurrenceSideDishCommand.Parameters["occurrence"].Value = occurrence;
         _insertOccurrenceSideDishCommand.Parameters["dish"].Value = sideDish;
     }
 
-    private void FillTagCommand(Guid occurrence, string tag)
+    private void FillNewTagCommand(Guid occurrence, string tag)
     {
+        _insertOccurrenceTagCommand = PrepareInsertOccurrenceTagCommand();
         _insertOccurrenceTagCommand.Parameters["occurrence"].Value = occurrence;
         _insertOccurrenceTagCommand.Parameters["tag"].Value = tag;
     }
@@ -288,17 +301,17 @@ public class Program
         return insertDishCommand;
     }
 
-    private NpgsqlCommand PrepareInsertOccurrenceSideDishCommand()
+    private NpgsqlBatchCommand PrepareInsertOccurrenceSideDishCommand()
     {
-        var insertOccurrenceSideDishCommand = new NpgsqlCommand(InsertOccurrenceSideDishSql, _dbConnection);
+        var insertOccurrenceSideDishCommand = new NpgsqlBatchCommand(InsertOccurrenceSideDishSql);
         insertOccurrenceSideDishCommand.Parameters.Add("occurrence", NpgsqlDbType.Uuid);
         insertOccurrenceSideDishCommand.Parameters.Add("dish", NpgsqlDbType.Uuid);
         return insertOccurrenceSideDishCommand;
     }
 
-    private NpgsqlCommand PrepareInsertOccurrenceTagCommand()
+    private NpgsqlBatchCommand PrepareInsertOccurrenceTagCommand()
     {
-        var insertOccurrenceTagCommand = new NpgsqlCommand(InsertOccurrenceTagSql, _dbConnection);
+        var insertOccurrenceTagCommand = new NpgsqlBatchCommand(InsertOccurrenceTagSql);
         insertOccurrenceTagCommand.Parameters.Add("occurrence", NpgsqlDbType.Uuid);
         insertOccurrenceTagCommand.Parameters.Add("tag", NpgsqlDbType.Varchar);
         return insertOccurrenceTagCommand;
