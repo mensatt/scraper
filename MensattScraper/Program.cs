@@ -14,6 +14,21 @@ public class Program
     private const string DbConnection = "HOST=localhost;Port=8080;Username=mensatt;Password=mensatt;Database=mensatt";
     private const int ScrapeDelayInSeconds = 1800;
 
+
+    #region Singleton Creation
+
+    private static Program? _instance;
+
+    private Program()
+    {
+    }
+
+    private static Program Instance => _instance ??= new Program();
+
+    #endregion
+    
+    #region Query Sql Strings
+
     private const string SelectIdForDishSql = $"SELECT id FROM dish WHERE name=@name";
 
     private const string InsertDishSql =
@@ -34,26 +49,23 @@ public class Program
 
     private const string DeleteOccurrenceByUuidSql = $"DELETE FROM occurrence WHERE id=@id";
 
-    private static Program? _instance;
+    #endregion
+
+    #region Database Connection/Command Members
 
     private NpgsqlConnection _dbConnection = null!;
-
 
     private NpgsqlCommand _selectDishCommand = null!;
 
     private NpgsqlCommand _insertDishCommand = null!;
     private NpgsqlCommand _insertOccurrenceCommand = null!;
-    
-    private NpgsqlBatchCommand _insertOccurrenceSideDishCommand = null!;
-    private NpgsqlBatchCommand _insertOccurrenceTagCommand = null!;
 
     private NpgsqlCommand _deleteOccurrenceCommand = null!;
 
-    private Program()
-    {
-    }
+    private NpgsqlBatchCommand _insertOccurrenceSideDishCommand = null!;
+    private NpgsqlBatchCommand _insertOccurrenceTagCommand = null!;
 
-    private static Program Instance => _instance ??= new Program();
+    #endregion
 
     public static void Main(string[] args)
     {
@@ -67,6 +79,7 @@ public class Program
         _dbConnection = new NpgsqlConnection(DbConnection);
         _dbConnection.Open();
 
+        // Map Postgres enum type, to ensure type safety
         _dbConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
 
         _selectDishCommand = PrepareSelectIdForDishCommand();
@@ -89,7 +102,7 @@ public class Program
 
         foreach (var file in Directory.EnumerateFiles("."))
         {
-            if(!file.EndsWith("xml"))
+            if (!file.EndsWith("xml"))
                 continue;
             timer.Restart();
             Console.Write("Now reading " + file);
@@ -105,6 +118,7 @@ public class Program
                 continue;
             }
 
+            // Happens on holidays, where the xml is provided but empty
             if (menu.Tags is null)
             {
                 Console.Error.WriteLine("Menu Tag was null");
@@ -126,12 +140,16 @@ public class Program
                     firstPullOfTheDay = false;
                 }
 
+                // Used to compare the dishes of one day with the dishes of the same day, on a previous scrape
+                // Without this, it would not be possible to check for removed dishes (which get deleted if they are
+                // to far in the future)
                 var dailyDishes = new HashSet<Guid>();
 
-                
+                // Batches the occurrence tags and side dishes, as they do not depend on unknown values
+                // These are also the most common queries, which makes the performance increase by batching substantial
                 var occurrenceOptionalsBatch = new NpgsqlBatch(_dbConnection);
 
-                
+
                 foreach (var item in current.Items)
                 {
                     // This gets shown as a placeholder, before the different kinds of pizza are known
@@ -177,7 +195,7 @@ public class Program
                         occurrenceOptionalsBatch.BatchCommands.Add(_insertOccurrenceTagCommand);
                     }
 
-                    
+
                     foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
                     {
                         FillSelectDishCommand(sideDish);
@@ -191,7 +209,7 @@ public class Program
                         {
                             FillNewSideDishCommand(occurrenceUuid, sideDishUuid.Value);
                         }
-                        
+
                         occurrenceOptionalsBatch.BatchCommands.Add(_insertOccurrenceSideDishCommand);
                     }
                 }
@@ -207,7 +225,6 @@ public class Program
                         // If this dish does not exist in the current XML, delete it
                         if (!dailyDishes.Contains(previousDish.Item1))
                         {
-                            // Delete
                             FillDeleteOccurrenceCommand(previousDish.Item1);
                             try
                             {
