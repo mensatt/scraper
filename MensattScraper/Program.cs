@@ -1,10 +1,7 @@
-﻿using System.Data;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Xml.Serialization;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
-using Npgsql;
-using NpgsqlTypes;
 
 namespace MensattScraper;
 
@@ -14,6 +11,7 @@ public class Program
     private const string DbConnection = "HOST=localhost;Port=8080;Username=mensatt;Password=mensatt;Database=mensatt";
     private const int ScrapeDelayInSeconds = 1800;
 
+    private readonly DatabaseWrapper _databaseWrapper;
 
     #region Singleton Creation
 
@@ -21,49 +19,10 @@ public class Program
 
     private Program()
     {
+        _databaseWrapper = new DatabaseWrapper(DbConnection);
     }
 
     private static Program Instance => _instance ??= new Program();
-
-    #endregion
-    
-    #region Query Sql Strings
-
-    private const string SelectIdForDishSql = $"SELECT id FROM dish WHERE name=@name";
-
-    private const string InsertDishSql =
-        $"INSERT INTO dish (name) VALUES (@name) ON CONFLICT (name) DO NOTHING RETURNING id";
-
-    private const string InsertOccurrenceSql =
-        $"INSERT INTO occurrence (dish, date, review_status, kj, kcal, fat, saturated_fat, " +
-        $"carbohydrates, sugar, fiber, protein, salt, price_student, " +
-        $"price_staff, price_guest) " +
-        $"VALUES (@dish, @date, @review_status, @kj, @kcal, @fat, @saturated_fat, " +
-        $"@carbohydrates, @sugar, @fiber, @protein, @salt, @price_student, " +
-        $"@price_staff, @price_guest) RETURNING id";
-
-    private const string InsertOccurrenceSideDishSql =
-        $"INSERT INTO occurrence_side_dishes VALUES (@occurrence, @dish)";
-
-    private const string InsertOccurrenceTagSql = $"INSERT INTO occurrence_tag VALUES (@occurrence, @tag)";
-
-    private const string DeleteOccurrenceByUuidSql = $"DELETE FROM occurrence WHERE id=@id";
-
-    #endregion
-
-    #region Database Connection/Command Members
-
-    private NpgsqlConnection _dbConnection = null!;
-
-    private NpgsqlCommand _selectDishCommand = null!;
-
-    private NpgsqlCommand _insertDishCommand = null!;
-    private NpgsqlCommand _insertOccurrenceCommand = null!;
-
-    private NpgsqlCommand _deleteOccurrenceCommand = null!;
-
-    private NpgsqlBatchCommand _insertOccurrenceSideDishCommand = null!;
-    private NpgsqlBatchCommand _insertOccurrenceTagCommand = null!;
 
     #endregion
 
@@ -76,18 +35,7 @@ public class Program
 
     private void InitDbConnection()
     {
-        _dbConnection = new NpgsqlConnection(DbConnection);
-        _dbConnection.Open();
-
-        // Map Postgres enum type, to ensure type safety
-        _dbConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
-
-        _selectDishCommand = PrepareSelectIdForDishCommand();
-        _insertDishCommand = PrepareInsertDishCommand();
-        _insertOccurrenceCommand = PrepareInsertOccurrenceCommand();
-        _insertOccurrenceSideDishCommand = PrepareInsertOccurrenceSideDishCommand();
-        _insertOccurrenceTagCommand = PrepareInsertOccurrenceTagCommand();
-        _deleteOccurrenceCommand = PrepareDeleteOccurrenceCommand();
+        _databaseWrapper.ConnectAndPrepare();
     }
 
     private void Scrape()
@@ -145,10 +93,7 @@ public class Program
                 // to far in the future)
                 var dailyDishes = new HashSet<Guid>();
 
-                // Batches the occurrence tags and side dishes, as they do not depend on unknown values
-                // These are also the most common queries, which makes the performance increase by batching substantial
-                var occurrenceOptionalsBatch = new NpgsqlBatch(_dbConnection);
-
+                _databaseWrapper.ResetBatch();
 
                 foreach (var item in current.Items)
                 {
@@ -156,17 +101,8 @@ public class Program
                     if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
                         continue;
 
-
-                    FillDishCommand(item.Title);
-                    var dishUuid = (Guid?) _insertDishCommand.ExecuteScalar();
-
-                    // RETURNING id does not get executed, if there is a conflict
-                    // Thus we need to fetch the existing UUID explicitly
-                    if (!dishUuid.HasValue)
-                    {
-                        FillSelectDishCommand(item.Title);
-                        dishUuid = (Guid?) _selectDishCommand.ExecuteScalar();
-                    }
+                    var dishUuid = _databaseWrapper.ExecuteInsertDishCommand(item.Title) ??
+                                   _databaseWrapper.ExecuteSelectDishByNameCommand(item.Title);
 
                     dailyDishes.Add(dishUuid.Value);
 
@@ -185,36 +121,27 @@ public class Program
                             occurrenceStatus = ReviewStatus.AWAITING_APPROVAL;
                     }
 
-                    FillOccurrenceCommand(current, item, dishUuid.Value, occurrenceStatus);
-                    var occurrenceUuid = (Guid) _insertOccurrenceCommand.ExecuteScalar();
+                    var occurrenceUuid =
+                        (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(current, item, dishUuid.Value,
+                            occurrenceStatus);
+
                     dailyOccurrences[currentDay].Add(new(dishUuid.Value, occurrenceUuid));
 
                     foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
                     {
-                        FillNewTagCommand(occurrenceUuid, tag);
-                        occurrenceOptionalsBatch.BatchCommands.Add(_insertOccurrenceTagCommand);
+                        _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
                     }
 
 
                     foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
                     {
-                        FillSelectDishCommand(sideDish);
-                        var sideDishUuid = (Guid?) _selectDishCommand.ExecuteScalar();
-                        if (!sideDishUuid.HasValue)
-                        {
-                            FillDishCommand(sideDish);
-                            FillNewSideDishCommand(occurrenceUuid, (Guid) _insertDishCommand.ExecuteScalar());
-                        }
-                        else
-                        {
-                            FillNewSideDishCommand(occurrenceUuid, sideDishUuid.Value);
-                        }
-
-                        occurrenceOptionalsBatch.BatchCommands.Add(_insertOccurrenceSideDishCommand);
+                        var sideDishUuid = _databaseWrapper.ExecuteSelectDishByNameCommand(sideDish) ??
+                                           _databaseWrapper.ExecuteInsertDishCommand(sideDish);
+                        _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid.Value);
                     }
                 }
 
-                occurrenceOptionalsBatch.ExecuteNonQuery();
+                _databaseWrapper.ExecuteBatch();
 
 
                 // Delete all dishes, that were removed on a day which is more than two days in the future
@@ -225,15 +152,7 @@ public class Program
                         // If this dish does not exist in the current XML, delete it
                         if (!dailyDishes.Contains(previousDish.Item1))
                         {
-                            FillDeleteOccurrenceCommand(previousDish.Item1);
-                            try
-                            {
-                                _deleteOccurrenceCommand.ExecuteNonQuery();
-                            }
-                            catch
-                            {
-                                Console.Error.WriteLine("Could not delete old occurrence");
-                            }
+                            _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(previousDish.Item1);
                         }
                     }
                 }
@@ -244,131 +163,7 @@ public class Program
             // Thread.Sleep(ScrapeDelayInSeconds * 1000);
         }
 
-        _dbConnection.Dispose();
+        _databaseWrapper.Dispose();
     }
 
-    private void FillDishCommand(string title) =>
-        _insertDishCommand.Parameters["name"].Value =
-            Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);
-
-    private void FillOccurrenceCommand(Tag tag, Item item, Guid dish, ReviewStatus status)
-    {
-        _insertOccurrenceCommand.Parameters["dish"].Value = dish;
-        _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(tag.Timestamp);
-        _insertOccurrenceCommand.Parameters["review_status"].Value = status;
-        var kj = Converter.FloatStringToInt(item.Kj);
-        _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 1000;
-        var kcal = Converter.FloatStringToInt(item.Kcal);
-        _insertOccurrenceCommand.Parameters["kcal"].Value = kcal == null ? DBNull.Value : (int) kcal / 1000;
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fat"], Converter.FloatStringToInt(item.Fett));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["saturated_fat"],
-            Converter.FloatStringToInt(item.Gesfett));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["carbohydrates"],
-            Converter.FloatStringToInt(item.Kh));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["sugar"],
-            Converter.FloatStringToInt(item.Zucker));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fiber"],
-            Converter.FloatStringToInt(item.Ballaststoffe));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["protein"],
-            Converter.FloatStringToInt(item.Eiweiss));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["salt"], Converter.FloatStringToInt(item.Salz));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_student"],
-            Converter.FloatStringToInt(item.Preis1));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_staff"],
-            Converter.FloatStringToInt(item.Preis2));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_guest"],
-            Converter.FloatStringToInt(item.Preis3));
-    }
-
-    private void SetParameterToValueOrNull(IDataParameter param, int? value)
-    {
-        param.Value = value.HasValue ? value : DBNull.Value;
-    }
-
-    private void FillNewSideDishCommand(Guid occurrence, Guid sideDish)
-    {
-        _insertOccurrenceSideDishCommand = PrepareInsertOccurrenceSideDishCommand();
-        _insertOccurrenceSideDishCommand.Parameters["occurrence"].Value = occurrence;
-        _insertOccurrenceSideDishCommand.Parameters["dish"].Value = sideDish;
-    }
-
-    private void FillNewTagCommand(Guid occurrence, string tag)
-    {
-        _insertOccurrenceTagCommand = PrepareInsertOccurrenceTagCommand();
-        _insertOccurrenceTagCommand.Parameters["occurrence"].Value = occurrence;
-        _insertOccurrenceTagCommand.Parameters["tag"].Value = tag;
-    }
-
-    private void FillSelectDishCommand(string name)
-    {
-        _selectDishCommand.Parameters["name"].Value =
-            Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name);
-    }
-
-    private void FillDeleteOccurrenceCommand(Guid id)
-    {
-        _deleteOccurrenceCommand.Parameters["id"].Value = id;
-    }
-
-    private NpgsqlCommand PrepareInsertDishCommand()
-    {
-        var insertDishCommand = new NpgsqlCommand(InsertDishSql, _dbConnection);
-        insertDishCommand.Parameters.Add("name", NpgsqlDbType.Varchar);
-        insertDishCommand.Prepare();
-        return insertDishCommand;
-    }
-
-    private NpgsqlBatchCommand PrepareInsertOccurrenceSideDishCommand()
-    {
-        var insertOccurrenceSideDishCommand = new NpgsqlBatchCommand(InsertOccurrenceSideDishSql);
-        insertOccurrenceSideDishCommand.Parameters.Add("occurrence", NpgsqlDbType.Uuid);
-        insertOccurrenceSideDishCommand.Parameters.Add("dish", NpgsqlDbType.Uuid);
-        return insertOccurrenceSideDishCommand;
-    }
-
-    private NpgsqlBatchCommand PrepareInsertOccurrenceTagCommand()
-    {
-        var insertOccurrenceTagCommand = new NpgsqlBatchCommand(InsertOccurrenceTagSql);
-        insertOccurrenceTagCommand.Parameters.Add("occurrence", NpgsqlDbType.Uuid);
-        insertOccurrenceTagCommand.Parameters.Add("tag", NpgsqlDbType.Varchar);
-        return insertOccurrenceTagCommand;
-    }
-
-    private NpgsqlCommand PrepareInsertOccurrenceCommand()
-    {
-        var insertOccurrenceCommand = new NpgsqlCommand(InsertOccurrenceSql, _dbConnection);
-        insertOccurrenceCommand.Parameters.Add("dish", NpgsqlDbType.Uuid);
-        insertOccurrenceCommand.Parameters.Add("date", NpgsqlDbType.Date);
-        insertOccurrenceCommand.Parameters.Add("review_status", NpgsqlDbType.Unknown);
-        insertOccurrenceCommand.Parameters.Add("kj", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("kcal", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("fat", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("saturated_fat", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("carbohydrates", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("sugar", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("fiber", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("protein", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("salt", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("price_student", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("price_staff", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Parameters.Add("price_guest", NpgsqlDbType.Integer);
-        insertOccurrenceCommand.Prepare();
-        return insertOccurrenceCommand;
-    }
-
-    private NpgsqlCommand PrepareSelectIdForDishCommand()
-    {
-        var selectIdCommand = new NpgsqlCommand(SelectIdForDishSql, _dbConnection);
-        selectIdCommand.Parameters.Add("name", NpgsqlDbType.Varchar);
-        selectIdCommand.Prepare();
-        return selectIdCommand;
-    }
-
-    private NpgsqlCommand PrepareDeleteOccurrenceCommand()
-    {
-        var deleteOccurrenceCommand = new NpgsqlCommand(DeleteOccurrenceByUuidSql, _dbConnection);
-        deleteOccurrenceCommand.Parameters.Add("id", NpgsqlDbType.Uuid);
-        deleteOccurrenceCommand.Prepare();
-        return deleteOccurrenceCommand;
-    }
 }

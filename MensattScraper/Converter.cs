@@ -1,8 +1,3 @@
-using System.ComponentModel;
-using System.Globalization;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.RegularExpressions;
-
 namespace MensattScraper;
 
 public static class Converter

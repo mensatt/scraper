@@ -7,3 +7,4 @@ riderModule.iml
 MensattScraper/content/
 MensattScraper/*.xml
 MensattScraper.sln.DotSettings.user
+.DS_store
