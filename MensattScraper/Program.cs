@@ -165,5 +165,4 @@ public class Program
 
         _databaseWrapper.Dispose();
     }
-
 }

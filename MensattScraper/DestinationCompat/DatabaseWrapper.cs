@@ -79,8 +79,8 @@ public class DatabaseWrapper : IDisposable
 
     public DatabaseWrapper(string connectionString)
     {
-        _databaseConnection = new (connectionString);
-        
+        _databaseConnection = new(connectionString);
+
         _selectDishByNameCommand.Connection = _databaseConnection;
         _insertDishCommand.Connection = _databaseConnection;
         _insertOccurrenceCommand.Connection = _databaseConnection;
@@ -110,7 +110,7 @@ public class DatabaseWrapper : IDisposable
         command.Parameters["tag"].Value = tag;
         _commandBatch.BatchCommands.Add(command);
     }
-    
+
     public void AddInsertOccurrenceSideDishCommandToBatch(Guid occurrence, Guid sideDish)
     {
         var command = InsertOccurrenceSideDishCommand;

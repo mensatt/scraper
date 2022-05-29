@@ -2,5 +2,7 @@
 
 public enum ReviewStatus
 {
-    APPROVED, AWAITING_APPROVAL, UPDATED
+    APPROVED,
+    AWAITING_APPROVAL,
+    UPDATED
 }
