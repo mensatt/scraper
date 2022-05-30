@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+
 namespace MensattScraper;
 
 public static class Converter
@@ -69,10 +72,30 @@ public static class Converter
             currentParenthesisIndex = end + 1;
         }
 
-        return RemoveMultipleWhiteSpaces(output.Trim(' ', ','));
+        return output.Trim(' ', ',').RemoveMultipleWhiteSpaces();
+    }
+    
+    public static string RemoveDiacritics(this string text) 
+    {
+        var normalizedString = text.Normalize(NormalizationForm.FormD);
+        var stringBuilder = new StringBuilder();
+
+        foreach (var c in normalizedString.EnumerateRunes())
+        {
+            var unicodeCategory = Rune.GetUnicodeCategory(c);
+            // Ignore all runes, which are not simple letters
+            // This works because é is ('´','e') in Unicode
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
     }
 
-    public static string RemoveMultipleWhiteSpaces(string input) =>
+    
+    public static string RemoveMultipleWhiteSpaces(this string input) =>
         string.Join(' ', input.Split(' ').Where(x => !string.IsNullOrEmpty(x)));
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
