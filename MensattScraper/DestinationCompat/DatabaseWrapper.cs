@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Data;
+using System.Reflection;
 using MensattScraper.SourceCompat;
 using Npgsql;
 using NpgsqlTypes;
@@ -81,10 +83,15 @@ public class DatabaseWrapper : IDisposable
     {
         _databaseConnection = new(connectionString);
 
-        _selectDishByNameCommand.Connection = _databaseConnection;
-        _insertDishCommand.Connection = _databaseConnection;
-        _insertOccurrenceCommand.Connection = _databaseConnection;
-        _deleteOccurrenceCommand.Connection = _databaseConnection;
+        // Set database connection for all non batch commands
+        foreach (var field in typeof(DatabaseWrapper).GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
+        {
+            if (field.FieldType != typeof(NpgsqlCommand)) continue;
+            
+            if (field.GetValue(this) is NpgsqlCommand command)
+                command.Connection = _databaseConnection;
+        }
+        
         _commandBatch.Connection = _databaseConnection;
     }
 
