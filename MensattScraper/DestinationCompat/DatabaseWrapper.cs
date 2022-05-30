@@ -19,6 +19,14 @@ public class DatabaseWrapper : IDisposable
         }
     };
 
+    private readonly NpgsqlCommand _selectDishByAliasNameCommand = new(DatabaseConstants.SelectDishIdByAliasNameSql)
+    {
+        Parameters =
+        {
+            new("alias_name", NpgsqlDbType.Varchar)
+        }
+    };
+
     private readonly NpgsqlCommand _insertDishCommand = new(DatabaseConstants.InsertDishWithNameSql)
     {
         Parameters =
@@ -46,6 +54,16 @@ public class DatabaseWrapper : IDisposable
             new("price_student", NpgsqlDbType.Integer),
             new("price_staff", NpgsqlDbType.Integer),
             new("price_guest", NpgsqlDbType.Integer)
+        }
+    };
+
+    private readonly NpgsqlCommand _insertDishAliasCommand = new(DatabaseConstants.InsertDishAliasSql)
+    {
+        Parameters =
+        {
+            new("original_name", NpgsqlDbType.Varchar),
+            new("alias_name", NpgsqlDbType.Varchar),
+            new("dish", NpgsqlDbType.Uuid)
         }
     };
 
@@ -133,6 +151,13 @@ public class DatabaseWrapper : IDisposable
         return (Guid?) _selectDishByNameCommand.ExecuteScalar();
     }
 
+    public Guid? ExecuteSelectDishAliasByNameCommand(string name)
+    {
+        _selectDishByAliasNameCommand.Parameters["alias_name"].Value =
+            Converter.SanitizeString(Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name));
+        return (Guid?) _selectDishByAliasNameCommand.ExecuteScalar();
+    }
+
     public Guid? ExecuteInsertDishCommand(string title)
     {
         _insertDishCommand.Parameters["name"].Value =
@@ -169,6 +194,15 @@ public class DatabaseWrapper : IDisposable
             Converter.FloatStringToInt(item.Preis3));
 
         return (Guid?) _insertOccurrenceCommand.ExecuteScalar();
+    }
+
+    public void ExecuteInsertDishAliasCommand(string dishName, Guid dish)
+    {
+        var extractedDishName = Converter.ExtractElementFromTitle(dishName, Converter.TitleElement.Name);
+        _insertDishAliasCommand.Parameters["original_name"].Value = extractedDishName;
+        _insertDishAliasCommand.Parameters["alias_name"].Value = Converter.SanitizeString(extractedDishName);
+        _insertDishCommand.Parameters["dish"].Value = dish;
+        _insertDishCommand.ExecuteNonQuery();
     }
 
     public void ExecuteDeleteOccurrenceByIdCommand(Guid id)
