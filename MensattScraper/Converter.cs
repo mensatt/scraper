@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MensattScraper;
 
@@ -74,8 +75,12 @@ public static class Converter
 
         return output.Trim(' ', ',').RemoveMultipleWhiteSpaces();
     }
-    
-    public static string RemoveDiacritics(this string text) 
+
+    public static string SanitizeString(string input) =>
+        Regex.Replace(input.ToLowerInvariant().RemoveDiacritics(),
+            @"[^a-z0-9 ]", string.Empty);
+
+    public static string RemoveDiacritics(this string text)
     {
         var normalizedString = text.Normalize(NormalizationForm.FormD);
         var stringBuilder = new StringBuilder();
@@ -94,12 +99,12 @@ public static class Converter
         return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
     }
 
-    
     public static string RemoveMultipleWhiteSpaces(this string input) =>
         string.Join(' ', input.Split(' ').Where(x => !string.IsNullOrEmpty(x)));
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
-        ExtractElementFromTitle(title.Replace("Cfebar", "").Replace("Hf", ""), TitleElement.Tag).Split(',')
+        ExtractElementFromTitle(title.Replace("Cfebar", "").Replace("Hf", ""), TitleElement.Tag)
+            .Split(',')
             .Where(x => !string.IsNullOrEmpty(x) && KnownTags.Contains(x)).Select(x => x.Trim()).Distinct().ToArray();
 
     public static DateOnly GetDateFromTimestamp(int timestamp)

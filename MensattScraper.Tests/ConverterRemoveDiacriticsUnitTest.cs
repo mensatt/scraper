@@ -1,6 +1,6 @@
 namespace MensattScraper.Tests;
 
-public class ConverterRemoveDiacritics
+public class ConverterRemoveDiacriticsUnitTest
 {
     [Theory]
     [InlineData("ÄÖÜÊÉÈ", "AOUEEE")]

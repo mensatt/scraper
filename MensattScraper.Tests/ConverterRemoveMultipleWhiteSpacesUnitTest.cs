@@ -1,6 +1,6 @@
 namespace MensattScraper.Tests;
 
-public class ConverterRemoveMultipleWhiteSpaces
+public class ConverterRemoveMultipleWhiteSpacesUnitTest
 {
     [Theory]
     [InlineData("Es gibt Essen", "Es gibt Essen")]

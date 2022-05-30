@@ -2,7 +2,7 @@
 
 namespace MensattScraper.Tests;
 
-public class ConverterExtractElementFromTitle
+public class ConverterExtractElementFromTitleUnitTest
 {
     [Theory]
     [InlineData(10, 32)]
