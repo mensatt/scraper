@@ -78,7 +78,7 @@ public static class Converter
 
     public static string SanitizeString(string input) =>
         Regex.Replace(input.ToLowerInvariant().RemoveDiacritics(),
-            @"[^a-z0-9 ]", string.Empty);
+            @"[^a-z0-9 ]", string.Empty).RemoveMultipleWhiteSpaces();
 
     public static string RemoveDiacritics(this string text)
     {
