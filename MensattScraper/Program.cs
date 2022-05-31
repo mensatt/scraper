@@ -48,15 +48,11 @@ public class Program
 
         var timer = new Stopwatch();
 
-        foreach (var file in Directory.EnumerateFiles("."))
+        for (var i = 0; i < 1; i++)
         {
-            if (!file.EndsWith("xml"))
-                continue;
             timer.Restart();
-            Console.Write("Now reading " + file);
 
-            //client.GetStreamAsync(ApiUrl).Result
-            using var reader = File.OpenRead(file);
+            using var reader = client.GetStreamAsync(ApiUrl).Result;
 
             var menu = (Speiseplan?) serializer.Deserialize(reader);
 
@@ -76,7 +72,7 @@ public class Program
             foreach (var current in menu.Tags)
             {
                 var currentDay = Converter.GetDateFromTimestamp(current.Timestamp);
-                var isInFarFuture = true || DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
+                var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
                 bool firstPullOfTheDay;
                 if (!dailyOccurrences.ContainsKey(currentDay))
                 {
@@ -101,8 +97,9 @@ public class Program
                     if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
                         continue;
 
-                    var dishUuid = _databaseWrapper.ExecuteInsertDishCommand(item.Title) ??
-                                   _databaseWrapper.ExecuteSelectDishByNameCommand(item.Title);
+                    var dishUuid = _databaseWrapper.ExecuteSelectDishAliasByNameCommand(item.Title) ??
+                                   _databaseWrapper.ExecuteInsertDishAliasCommand(item.Title,
+                                       (Guid) _databaseWrapper.ExecuteInsertDishCommand(item.Title));
 
                     dailyDishes.Add(dishUuid.Value);
 

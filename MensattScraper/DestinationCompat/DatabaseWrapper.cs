@@ -105,11 +105,11 @@ public class DatabaseWrapper : IDisposable
         foreach (var field in typeof(DatabaseWrapper).GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
         {
             if (field.FieldType != typeof(NpgsqlCommand)) continue;
-            
+
             if (field.GetValue(this) is NpgsqlCommand command)
                 command.Connection = _databaseConnection;
         }
-        
+
         _commandBatch.Connection = _databaseConnection;
     }
 
@@ -196,13 +196,13 @@ public class DatabaseWrapper : IDisposable
         return (Guid?) _insertOccurrenceCommand.ExecuteScalar();
     }
 
-    public void ExecuteInsertDishAliasCommand(string dishName, Guid dish)
+    public Guid? ExecuteInsertDishAliasCommand(string dishName, Guid dish)
     {
         var extractedDishName = Converter.ExtractElementFromTitle(dishName, Converter.TitleElement.Name);
         _insertDishAliasCommand.Parameters["original_name"].Value = extractedDishName;
         _insertDishAliasCommand.Parameters["alias_name"].Value = Converter.SanitizeString(extractedDishName);
-        _insertDishCommand.Parameters["dish"].Value = dish;
-        _insertDishCommand.ExecuteNonQuery();
+        _insertDishAliasCommand.Parameters["dish"].Value = dish;
+        return (Guid?) _insertDishAliasCommand.ExecuteScalar();
     }
 
     public void ExecuteDeleteOccurrenceByIdCommand(Guid id)
