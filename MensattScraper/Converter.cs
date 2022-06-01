@@ -103,7 +103,7 @@ public static class Converter
         string.Join(' ', input.Split(' ').Where(x => !string.IsNullOrEmpty(x)));
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
-        ExtractElementFromTitle(title.Replace("Cfebar", "").Replace("Hf", ""), TitleElement.Tag)
+        ExtractElementFromTitle(title.Replace("Cfebar", ""), TitleElement.Tag)
             .Split(',')
             .Where(x => !string.IsNullOrEmpty(x) && KnownTags.Contains(x)).Select(x => x.Trim()).Distinct().ToArray();
 
