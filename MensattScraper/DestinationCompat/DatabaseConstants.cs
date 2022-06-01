@@ -21,6 +21,9 @@ internal static class DatabaseConstants
         "INSERT INTO occurrence_side_dishes VALUES (@occurrence, @dish)";
 
     internal const string InsertOccurrenceTagSql = "INSERT INTO occurrence_tag VALUES (@occurrence, @tag)";
-    internal const string InsertDishAliasSql = "INSERT INTO dish_alias VALUES(@original_name, @alias_name, @dish) RETURNING dish";
+
+    internal const string InsertDishAliasSql =
+        "INSERT INTO dish_alias VALUES(@original_name, @alias_name, @dish) RETURNING dish";
+
     internal const string DeleteOccurrenceByIdSql = "DELETE FROM occurrence WHERE id=@id";
 }

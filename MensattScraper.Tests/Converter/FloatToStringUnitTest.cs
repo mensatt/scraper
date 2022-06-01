@@ -1,6 +1,6 @@
-﻿namespace MensattScraper.Tests;
+﻿namespace MensattScraper.Tests.Converter;
 
-public class ConverterUnitTestFloatToString
+public class FloatToStringUnitTest
 {
     [Theory]
     [InlineData("1.0", 10)]
@@ -9,7 +9,7 @@ public class ConverterUnitTestFloatToString
     [InlineData("0.0", 0)]
     public void NumberWithDot(string number, int expected)
     {
-        var result = Converter.FloatStringToInt(number);
+        var result = MensattScraper.Converter.FloatStringToInt(number);
         Assert.Equal(expected, result);
     }
 
@@ -20,7 +20,7 @@ public class ConverterUnitTestFloatToString
     [InlineData("0,0", 0)]
     public void NumberWithComma(string number, int expected)
     {
-        var result = Converter.FloatStringToInt(number);
+        var result = MensattScraper.Converter.FloatStringToInt(number);
         Assert.Equal(expected, result);
     }
 
@@ -31,7 +31,7 @@ public class ConverterUnitTestFloatToString
     [InlineData("00", 0)]
     public void BareNumber(string number, int expected)
     {
-        var result = Converter.FloatStringToInt(number);
+        var result = MensattScraper.Converter.FloatStringToInt(number);
         Assert.Equal(expected, result);
     }
 
@@ -40,7 +40,7 @@ public class ConverterUnitTestFloatToString
     [InlineData("", null)]
     public void NullOrEmptyNumber(string number, int? expected)
     {
-        var result = Converter.FloatStringToInt(number);
+        var result = MensattScraper.Converter.FloatStringToInt(number);
         Assert.Equal(expected, result);
     }
 
@@ -50,7 +50,7 @@ public class ConverterUnitTestFloatToString
     [InlineData("👍👍👍👍👍", null)]
     public void NotANumber(string number, int? expected)
     {
-        var result = Converter.FloatStringToInt(number);
+        var result = MensattScraper.Converter.FloatStringToInt(number);
         Assert.Equal(expected, result);
     }
 }

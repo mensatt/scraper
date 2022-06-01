@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -48,11 +49,7 @@ public static class Converter
 
             // There should be no way for this condition to be true (according to the constraints placed above),
             // but I left it here for safety reasons
-            if (end == -1)
-            {
-                Console.Error.WriteLine("Mismatched parentheses, Mode: " + titleElement + ", Title:`" + title + "`");
-                return string.Empty;
-            }
+            Trace.Assert(end != -1, "Braces are mismatched, missing )");
 
             var content = title.Substring(start, end - start);
 
@@ -103,14 +100,12 @@ public static class Converter
         string.Join(' ', input.Split(' ').Where(x => !string.IsNullOrEmpty(x)));
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
-        ExtractElementFromTitle(title.Replace("Cfebar", ""), TitleElement.Tag)
-            .Split(',')
+        ExtractElementFromTitle(title, TitleElement.Tag).Split(',')
             .Where(x => !string.IsNullOrEmpty(x) && KnownTags.Contains(x)).Select(x => x.Trim()).Distinct().ToArray();
 
     public static DateOnly GetDateFromTimestamp(int timestamp)
     {
         var utcTimestamp = DateTimeOffset.FromUnixTimeSeconds(timestamp);
-        var x = TimeZoneInfo.GetSystemTimeZones();
         var offsetToCest = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time")
             .GetUtcOffset(utcTimestamp);
         return DateOnly.FromDateTime(utcTimestamp.Add(offsetToCest).Date);

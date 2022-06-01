@@ -1,6 +1,6 @@
-namespace MensattScraper.Tests;
+namespace MensattScraper.Tests.Converter;
 
-public class ConverterRemoveMultipleWhiteSpacesUnitTest
+public class RemoveMultipleWhiteSpacesUnitTest
 {
     [Theory]
     [InlineData("Es gibt Essen", "Es gibt Essen")]
@@ -8,7 +8,7 @@ public class ConverterRemoveMultipleWhiteSpacesUnitTest
     [InlineData("Mmmm 🍕", "Mmmm 🍕")]
     public void TitleWithSingleSpaces(string title, string expected)
     {
-        var result = Converter.RemoveMultipleWhiteSpaces(title);
+        var result = title.RemoveMultipleWhiteSpaces();
 
         Assert.Equal(expected, result);
     }
@@ -20,7 +20,7 @@ public class ConverterRemoveMultipleWhiteSpacesUnitTest
     [InlineData("1 2  3   4    5     ", "1 2 3 4 5")]
     public void TitleWithMultipleSpaces(string title, string expected)
     {
-        var result = Converter.RemoveMultipleWhiteSpaces(title);
+        var result = title.RemoveMultipleWhiteSpaces();
 
         Assert.Equal(expected, result);
     }
@@ -28,7 +28,7 @@ public class ConverterRemoveMultipleWhiteSpacesUnitTest
     [Fact]
     public void EmptyTitle()
     {
-        var result = Converter.RemoveMultipleWhiteSpaces(string.Empty);
+        var result = string.Empty.RemoveMultipleWhiteSpaces();
 
         Assert.Equal(string.Empty, result);
     }
@@ -39,7 +39,7 @@ public class ConverterRemoveMultipleWhiteSpacesUnitTest
     [InlineData("       ", "")]
     public void TitleConsistingOfWhitespaces(string title, string expected)
     {
-        var result = Converter.RemoveMultipleWhiteSpaces(title);
+        var result = title.RemoveMultipleWhiteSpaces();
 
         Assert.Equal(expected, result);
     }

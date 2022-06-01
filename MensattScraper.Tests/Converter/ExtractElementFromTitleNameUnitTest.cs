@@ -1,8 +1,6 @@
-﻿using System.Text;
+﻿namespace MensattScraper.Tests.Converter;
 
-namespace MensattScraper.Tests;
-
-public class ConverterExtractElementFromTitleUnitTest
+public class ExtractElementFromTitleUnitTest
 {
     [Theory]
     [InlineData(10, 32)]
@@ -13,9 +11,11 @@ public class ConverterExtractElementFromTitleUnitTest
     {
         for (uint i = 0; i < repeats; i++)
         {
-            var randomString = GenerateRandomString(titleLength);
+            var randomString = RandomUtil.GenerateRandomString(titleLength);
 
-            Assert.Equal(randomString, Converter.ExtractElementFromTitle(randomString, Converter.TitleElement.Name));
+            Assert.Equal(randomString,
+                MensattScraper.Converter.ExtractElementFromTitle(randomString,
+                    MensattScraper.Converter.TitleElement.Name));
         }
     }
 
@@ -25,7 +25,8 @@ public class ConverterExtractElementFromTitleUnitTest
     [InlineData("Pizza🍕👍", "Pizza🍕👍")]
     public void TitleWithoutParentheses(string title, string expected)
     {
-        var result = Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);
+        var result =
+            MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
 
         Assert.Equal(expected, result);
     }
@@ -41,7 +42,8 @@ public class ConverterExtractElementFromTitleUnitTest
         "Pizza Mediterrane (Oliven, Peperoni, Paprika, Zwiebeln)")]
     public void TitleWithNonTagParentheses(string title, string expected)
     {
-        var result = Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);
+        var result =
+            MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
 
         Assert.Equal(expected, result);
     }
@@ -56,7 +58,8 @@ public class ConverterExtractElementFromTitleUnitTest
     [InlineData(")))))))))))))()())))")]
     public void TitleWithNonTagMismatchedParentheses(string title)
     {
-        var result = Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);
+        var result =
+            MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
 
         Assert.Equal(string.Empty, result);
     }
@@ -74,27 +77,9 @@ public class ConverterExtractElementFromTitleUnitTest
         "Putenschnitzel und Remouladensoße und Chips")]
     public void TitleWithTagParentheses(string title, string expected)
     {
-        var result = Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);
+        var result =
+            MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
 
         Assert.Equal(expected, result);
-    }
-
-    private static readonly char[] Alphabet =
-    {
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
-        'W',
-        'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-        't',
-        'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', '!', '§', '€'
-    };
-
-    private static readonly Random Rng = new Random(0xae75a77);
-
-    private static string GenerateRandomString(uint length)
-    {
-        var resultBuilder = new StringBuilder((int) length);
-        for (uint i = 0; i < length; i++)
-            resultBuilder.Append(Alphabet[Rng.Next(0, Alphabet.Length)]);
-        return resultBuilder.ToString();
     }
 }

@@ -1,6 +1,6 @@
-﻿namespace MensattScraper.Tests;
+﻿namespace MensattScraper.Tests.Converter;
 
-public class ConverterGetDateFromTimestampUnitTest
+public class GetDateFromTimestampUnitTest
 {
     public static TheoryData<int, DateOnly> SummerTimeBeforeMidnightData => new()
     {
@@ -14,7 +14,7 @@ public class ConverterGetDateFromTimestampUnitTest
     [MemberData(nameof(SummerTimeBeforeMidnightData))]
     public void SummertimeBeforeMidnight(int timestamp, DateOnly expected)
     {
-        var result = Converter.GetDateFromTimestamp(timestamp);
+        var result = MensattScraper.Converter.GetDateFromTimestamp(timestamp);
         Assert.Equal(result, expected);
     }
 
@@ -30,7 +30,7 @@ public class ConverterGetDateFromTimestampUnitTest
     [MemberData(nameof(WinterTimeBeforeMidnightData))]
     public void WinterTimeBeforeMidnight(int timestamp, DateOnly expected)
     {
-        var result = Converter.GetDateFromTimestamp(timestamp);
+        var result = MensattScraper.Converter.GetDateFromTimestamp(timestamp);
         Assert.Equal(result, expected);
     }
 }
