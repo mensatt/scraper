@@ -163,7 +163,7 @@ public class DatabaseWrapper : IDisposable
         return (Guid?) _selectDishByAliasNameCommand.ExecuteScalar();
     }
 
-    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDate()
+    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateCommand()
     {
         var dateMapping = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
 
