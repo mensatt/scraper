@@ -27,6 +27,9 @@ public class DatabaseWrapper : IDisposable
         }
     };
 
+    private readonly NpgsqlCommand _selectOccurrenceIdNameDateCommand =
+        new(DatabaseConstants.SelectOccurrenceIdNameDateSql);
+
     private readonly NpgsqlCommand _insertDishCommand = new(DatabaseConstants.InsertDishWithNameSql)
     {
         Parameters =
@@ -119,7 +122,9 @@ public class DatabaseWrapper : IDisposable
         _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
 
         _selectDishByNameCommand.Prepare();
+        _selectDishByAliasNameCommand.Prepare();
         _insertDishCommand.Prepare();
+        _insertDishAliasCommand.Prepare();
         _insertOccurrenceCommand.Prepare();
         _deleteOccurrenceCommand.Prepare();
     }
@@ -156,6 +161,23 @@ public class DatabaseWrapper : IDisposable
         _selectDishByAliasNameCommand.Parameters["alias_name"].Value =
             Converter.SanitizeString(Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name));
         return (Guid?) _selectDishByAliasNameCommand.ExecuteScalar();
+    }
+
+    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDate()
+    {
+        var dateMapping = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
+
+        using var reader = _selectOccurrenceIdNameDateCommand.ExecuteReader();
+        while (reader.Read())
+        {
+            var occurrenceDate = DateOnly.FromDateTime(reader.GetDateTime("date"));
+            var occurrenceDishTuple = new Tuple<Guid, Guid>(reader.GetGuid("dish"), reader.GetGuid("id"));
+            if (!dateMapping.ContainsKey(occurrenceDate))
+                dateMapping.Add(occurrenceDate, new List<Tuple<Guid, Guid>>());
+            dateMapping[occurrenceDate].Add(occurrenceDishTuple);
+        }
+
+        return dateMapping;
     }
 
     public Guid? ExecuteInsertDishCommand(string title)

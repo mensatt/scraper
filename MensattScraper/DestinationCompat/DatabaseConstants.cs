@@ -4,6 +4,7 @@ internal static class DatabaseConstants
 {
     internal const string SelectIdByNameSql = "SELECT id FROM dish WHERE name=@name";
     internal const string SelectDishIdByAliasNameSql = "SELECT dish FROM dish_alias WHERE alias_name=@alias_name";
+    internal const string SelectOccurrenceIdNameDateSql = "SELECT id, dish, date FROM occurrence";
 
     internal const string InsertDishWithNameSql =
         "INSERT INTO dish (name) VALUES (@name) ON CONFLICT (name) DO NOTHING RETURNING id";

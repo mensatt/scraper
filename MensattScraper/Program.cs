@@ -44,7 +44,7 @@ public class Program
         var serializer = new XmlSerializer(typeof(Speiseplan));
 
         // Dict<01.01.1970, List<Dish UUID -> Occurrence UUID>>
-        var dailyOccurrences = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
+        var dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDate();
 
         var timer = new Stopwatch();
 
