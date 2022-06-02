@@ -71,12 +71,18 @@ public class Program
 
             foreach (var current in menu.Tags)
             {
+                if (current.Items is null)
+                {
+                    Console.Error.WriteLine("Day contained no items");
+                    continue;
+                }
+
                 var currentDay = Converter.GetDateFromTimestamp(current.Timestamp);
                 var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
                 bool firstPullOfTheDay;
                 if (!dailyOccurrences.ContainsKey(currentDay))
                 {
-                    dailyOccurrences.Add(currentDay, new List<Tuple<Guid, Guid>>());
+                    dailyOccurrences.Add(currentDay, new());
                     firstPullOfTheDay = true;
                 }
                 else
@@ -99,7 +105,13 @@ public class Program
 
                     var dishUuid = _databaseWrapper.ExecuteSelectDishAliasByNameCommand(item.Title) ??
                                    _databaseWrapper.ExecuteInsertDishAliasCommand(item.Title,
-                                       (Guid) _databaseWrapper.ExecuteInsertDishCommand(item.Title));
+                                       (Guid) _databaseWrapper.ExecuteInsertDishCommand(item.Title)!);
+
+                    if (dishUuid is null)
+                    {
+                        Console.Error.WriteLine("DishUuid was null");
+                        continue;
+                    }
 
                     dailyDishes.Add(dishUuid.Value);
 
@@ -142,15 +154,18 @@ public class Program
 
 
                 // Delete all dishes, that were removed on a day which is more than two days in the future
-                if (isInFarFuture)
+
+
+                foreach (var (dishId, occurrenceId) in dailyOccurrences[currentDay])
                 {
-                    foreach (var previousDish in dailyOccurrences[currentDay])
+                    // If this dish does not exist in the current XML, delete it
+                    if (!dailyDishes.Contains(dishId))
                     {
-                        // If this dish does not exist in the current XML, delete it
-                        if (!dailyDishes.Contains(previousDish.Item1))
-                        {
-                            _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(previousDish.Item1);
-                        }
+                        if (isInFarFuture)
+                            _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(occurrenceId);
+                        else
+                            _databaseWrapper.ExecuteUpdateOccurrenceReviewStatusByIdCommand(
+                                ReviewStatus.PENDING_DELETION, occurrenceId);
                     }
                 }
             }

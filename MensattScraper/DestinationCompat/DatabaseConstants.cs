@@ -25,5 +25,8 @@ internal static class DatabaseConstants
     internal const string InsertDishAliasSql =
         "INSERT INTO dish_alias VALUES(@original_name, @alias_name, @dish) RETURNING dish";
 
+    internal const string UpdateOccurrenceReviewStatusByIdSql =
+        "UPDATE occurrence SET review_status = @review_status WHERE id=@id";
+
     internal const string DeleteOccurrenceByIdSql = "DELETE FROM occurrence WHERE id=@id";
 }

@@ -4,5 +4,6 @@ public enum ReviewStatus
 {
     APPROVED,
     AWAITING_APPROVAL,
-    UPDATED
+    UPDATED,
+    PENDING_DELETION
 }

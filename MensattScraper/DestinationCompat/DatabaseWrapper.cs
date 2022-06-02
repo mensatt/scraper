@@ -69,6 +69,16 @@ public class DatabaseWrapper : IDisposable
         }
     };
 
+    private readonly NpgsqlCommand _updateOccurrenceReviewStatusByIdCommand =
+        new(DatabaseConstants.UpdateOccurrenceReviewStatusByIdSql)
+        {
+            Parameters =
+            {
+                new("review_status", NpgsqlDbType.Unknown),
+                new("id", NpgsqlDbType.Uuid)
+            }
+        };
+
     private readonly NpgsqlCommand _deleteOccurrenceCommand = new(DatabaseConstants.DeleteOccurrenceByIdSql)
     {
         Parameters =
@@ -125,6 +135,7 @@ public class DatabaseWrapper : IDisposable
         _insertDishCommand.Prepare();
         _insertDishAliasCommand.Prepare();
         _insertOccurrenceCommand.Prepare();
+        _updateOccurrenceReviewStatusByIdCommand.Prepare();
         _deleteOccurrenceCommand.Prepare();
     }
 
@@ -172,7 +183,7 @@ public class DatabaseWrapper : IDisposable
             var occurrenceDate = DateOnly.FromDateTime(reader.GetDateTime("date"));
             var occurrenceDishTuple = new Tuple<Guid, Guid>(reader.GetGuid("dish"), reader.GetGuid("id"));
             if (!dateMapping.ContainsKey(occurrenceDate))
-                dateMapping.Add(occurrenceDate, new List<Tuple<Guid, Guid>>());
+                dateMapping.Add(occurrenceDate, new());
             dateMapping[occurrenceDate].Add(occurrenceDishTuple);
         }
 
@@ -224,6 +235,13 @@ public class DatabaseWrapper : IDisposable
         _insertDishAliasCommand.Parameters["alias_name"].Value = Converter.SanitizeString(extractedDishName);
         _insertDishAliasCommand.Parameters["dish"].Value = dish;
         return (Guid?) _insertDishAliasCommand.ExecuteScalar();
+    }
+
+    public void ExecuteUpdateOccurrenceReviewStatusByIdCommand(ReviewStatus status, Guid id)
+    {
+        _updateOccurrenceReviewStatusByIdCommand.Parameters["review_status"].Value = status;
+        _updateOccurrenceReviewStatusByIdCommand.Parameters["id"].Value = id;
+        _updateOccurrenceReviewStatusByIdCommand.ExecuteNonQuery();
     }
 
     public void ExecuteDeleteOccurrenceByIdCommand(Guid id)
