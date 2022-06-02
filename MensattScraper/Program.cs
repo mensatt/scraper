@@ -52,7 +52,12 @@ public class Program
         {
             timer.Restart();
 
-            using var reader = client.GetStreamAsync(ApiUrl).Result;
+            using var outputFile = File.Create(DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss") + ".xml");
+
+            using var httpResponse = client.GetAsync(ApiUrl).Result;
+            httpResponse.Content.CopyTo(outputFile, null, CancellationToken.None);
+
+            using var reader = httpResponse.Content.ReadAsStream();
 
             var menu = (Speiseplan?) serializer.Deserialize(reader);
 
