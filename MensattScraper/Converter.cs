@@ -17,7 +17,7 @@ public static class Converter
     {
         "1",
         "2", "4", "5", "7", "8", "9", "10", "11", "12", "13", "30", "S", "R", "G", "L", "W", "F", "V", "Veg", "MSC",
-        "Gf", "CO2", "B", "MV", "Wz", "Ro", "Ge", "Hafer", "Kr", "Ei", "Fi", "Er", "So", "Mi", "Man", "Hs", "Wa", "Ka",
+        "Gf", "CO2", "B", "MV", "Wz", "Ro", "Ge", "Hf", "Kr", "Ei", "Fi", "Er", "So", "Mi", "Man", "Hs", "Wa", "Ka",
         "Pe", "Pa", "Pi", "Mac", "Sel", "Sen", "Ses", "Su", "Lu", "We"
     };
 

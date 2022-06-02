@@ -24,7 +24,7 @@ public class ExtractElementFromTitleTagUnitTest
         "1,4,10,Wz,So,Mi,Ge")]
     [InlineData("Test (1,4)", "1,4")]
     [InlineData("(Wz,So,Mi,Ge)", "Wz,So,Mi,Ge")]
-    [InlineData("My (1) dear (Wz) so (Hafer) many (30) tags (V)", "1,Wz,Hafer,30,V")]
+    [InlineData("My (1) dear (Wz) so (Hf) many (30) tags (V)", "1,Wz,Hf,30,V")]
     [InlineData("Hackbraten (Wz,Ei,So,Sen) mit Jus (1,Wz,Sel,Ge) Kartoffel-Kräuterpüree (7,12,Mi)",
         "Wz,Ei,So,Sen,1,Wz,Sel,Ge,7,12,Mi")]
     [InlineData("Vegane Currywurst mit Soße und Pommes frites(Wz)", "Wz")]
