@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Xml.Serialization;
+using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
 
@@ -19,10 +20,10 @@ public class Program
 
     private Program()
     {
-        _databaseWrapper = new DatabaseWrapper(DbConnection);
+        _databaseWrapper = new(DbConnection);
     }
 
-    private static Program Instance => _instance ??= new Program();
+    private static Program Instance => _instance ??= new();
 
     #endregion
 
@@ -40,24 +41,31 @@ public class Program
 
     private void Scrape()
     {
-        var client = new HttpClient();
         var serializer = new XmlSerializer(typeof(Speiseplan));
 
         // Dict<01.01.1970, List<Dish UUID -> Occurrence UUID>>
         var dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateCommand();
 
+        IDataProvider dataProvider = new FileDataProvider("content");
+
         var timer = new Stopwatch();
 
-        for (var i = 0; i < 1; i++)
+        while (dataProvider.HasNextStream())
         {
             timer.Restart();
 
-            using var outputFile = File.Create(DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss") + ".xml");
+            // using var httpResponse = client.GetAsync(ApiUrl).Result;
+            // httpResponse.Content.CopyTo(outputFile, null, CancellationToken.None);
 
-            using var httpResponse = client.GetAsync(ApiUrl).Result;
-            httpResponse.Content.CopyTo(outputFile, null, CancellationToken.None);
+            using var reader = dataProvider.RetrieveStream();
 
-            using var reader = httpResponse.Content.ReadAsStream();
+            // Only save data coming from the network, as it may not be readily available
+            if (dataProvider is HttpDataProvider)
+            {
+                using var outputFile = File.Create(DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss") + ".xml");
+                reader.CopyTo(outputFile);
+                reader.Position = 0;
+            }
 
             var menu = (Speiseplan?) serializer.Deserialize(reader);
 
@@ -110,7 +118,8 @@ public class Program
 
                     var dishUuid = _databaseWrapper.ExecuteSelectDishAliasByNameCommand(item.Title) ??
                                    _databaseWrapper.ExecuteInsertDishAliasCommand(item.Title,
-                                       (Guid) _databaseWrapper.ExecuteInsertDishCommand(item.Title)!);
+                                       (Guid) (_databaseWrapper.ExecuteSelectDishByNameCommand(item.Title) ??
+                                               _databaseWrapper.ExecuteInsertDishCommand(item.Title)!));
 
                     if (dishUuid is null)
                     {
@@ -179,6 +188,10 @@ public class Program
             Console.WriteLine(" --> this took " + timer.ElapsedMilliseconds + "ms");
             // Thread.Sleep(ScrapeDelayInSeconds * 1000);
         }
+
+        // Dispose if needed
+        if (dataProvider is IDisposable disposableDataProvider)
+            disposableDataProvider.Dispose();
 
         _databaseWrapper.Dispose();
     }
