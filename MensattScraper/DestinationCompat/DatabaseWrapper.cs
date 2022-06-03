@@ -113,14 +113,8 @@ public class DatabaseWrapper : IDisposable
     {
         _databaseConnection = new(connectionString);
 
-        // Set database connection for all non batch commands
-        foreach (var field in typeof(DatabaseWrapper).GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
-        {
-            if (field.FieldType != typeof(NpgsqlCommand)) continue;
-
-            if (field.GetValue(this) is NpgsqlCommand command)
-                command.Connection = _databaseConnection;
-        }
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(DatabaseWrapper), this))
+            npgsqlCommand.Connection = _databaseConnection;
 
         _commandBatch.Connection = _databaseConnection;
     }
@@ -130,13 +124,8 @@ public class DatabaseWrapper : IDisposable
         _databaseConnection.Open();
         _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
 
-        _selectDishByNameCommand.Prepare();
-        _selectDishByAliasNameCommand.Prepare();
-        _insertDishCommand.Prepare();
-        _insertDishAliasCommand.Prepare();
-        _insertOccurrenceCommand.Prepare();
-        _updateOccurrenceReviewStatusByIdCommand.Prepare();
-        _deleteOccurrenceCommand.Prepare();
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(DatabaseWrapper), this))
+            npgsqlCommand.Prepare();
     }
 
     public void ResetBatch() => _commandBatch.BatchCommands.Clear();
@@ -258,11 +247,10 @@ public class DatabaseWrapper : IDisposable
 
     public void Dispose()
     {
-        _databaseConnection.Dispose();
-        _selectDishByNameCommand.Dispose();
-        _insertDishCommand.Dispose();
-        _insertOccurrenceCommand.Dispose();
-        _deleteOccurrenceCommand.Dispose();
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(DatabaseWrapper), this))
+            npgsqlCommand.Dispose();
+
         _commandBatch.Dispose();
+        _databaseConnection.Dispose();
     }
 }

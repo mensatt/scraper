@@ -53,9 +53,6 @@ public class Program
         {
             timer.Restart();
 
-            // using var httpResponse = client.GetAsync(ApiUrl).Result;
-            // httpResponse.Content.CopyTo(outputFile, null, CancellationToken.None);
-
             using var reader = dataProvider.RetrieveStream();
 
             // Only save data coming from the network, as it may not be readily available
