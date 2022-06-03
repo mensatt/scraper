@@ -1,5 +1,6 @@
 using System.Data;
 using MensattScraper.SourceCompat;
+using MensattScraper.Util;
 using Npgsql;
 using NpgsqlTypes;
 

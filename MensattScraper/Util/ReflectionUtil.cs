@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 
-namespace MensattScraper;
+namespace MensattScraper.Util;
 
-public class ReflectionUtil
+public static class ReflectionUtil
 {
     public static IEnumerable<T> GetFieldsWithType<T>(Type type, object callee,
         BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance) where T : class

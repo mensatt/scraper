@@ -3,6 +3,7 @@ using System.Xml.Serialization;
 using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
+using MensattScraper.Util;
 
 namespace MensattScraper;
 
@@ -53,12 +54,17 @@ public class Program
         {
             timer.Restart();
 
+            // Free up entries in the past
+            dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today));
+
             using var reader = dataProvider.RetrieveStream();
 
             // Only save data coming from the network, as it may not be readily available
             if (dataProvider is HttpDataProvider)
             {
-                using var outputFile = File.Create(DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss") + ".xml");
+                using var outputFile =
+                    File.Create(
+                        $"content{Path.DirectorySeparatorChar}{DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss")}.xml");
                 reader.CopyTo(outputFile);
                 reader.Position = 0;
             }
