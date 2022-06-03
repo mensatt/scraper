@@ -3,7 +3,7 @@ namespace MensattScraper.DestinationCompat;
 internal static class DatabaseConstants
 {
     internal const string SelectIdByNameSql = "SELECT id FROM dish WHERE name=@name";
-    internal const string SelectDishIdByAliasNameSql = "SELECT dish FROM dish_alias WHERE alias_name=@alias_name";
+    internal const string SelectDishIdByAliasNameSql = "SELECT dish FROM dish_alias WHERE normalized_alias_name=@normalized_alias_name";
     internal const string SelectOccurrenceIdNameDateSql = "SELECT id, dish, date FROM occurrence";
 
     internal const string InsertDishWithNameSql =
@@ -23,7 +23,7 @@ internal static class DatabaseConstants
     internal const string InsertOccurrenceTagSql = "INSERT INTO occurrence_tag VALUES (@occurrence, @tag)";
 
     internal const string InsertDishAliasSql =
-        "INSERT INTO dish_alias VALUES(@original_name, @alias_name, @dish) RETURNING dish";
+        "INSERT INTO dish_alias VALUES(@alias_name, @normalized_alias_name, @dish) RETURNING dish";
 
     internal const string UpdateOccurrenceReviewStatusByIdSql =
         "UPDATE occurrence SET review_status = @review_status WHERE id=@id";

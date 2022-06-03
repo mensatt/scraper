@@ -22,7 +22,7 @@ public class DatabaseWrapper : IDisposable
     {
         Parameters =
         {
-            new("alias_name", NpgsqlDbType.Varchar)
+            new("normalized_alias_name", NpgsqlDbType.Varchar)
         }
     };
 
@@ -63,8 +63,8 @@ public class DatabaseWrapper : IDisposable
     {
         Parameters =
         {
-            new("original_name", NpgsqlDbType.Varchar),
             new("alias_name", NpgsqlDbType.Varchar),
+            new("normalized_alias_name", NpgsqlDbType.Varchar),
             new("dish", NpgsqlDbType.Uuid)
         }
     };
@@ -168,7 +168,7 @@ public class DatabaseWrapper : IDisposable
 
     public Guid? ExecuteSelectDishAliasByNameCommand(string name)
     {
-        _selectDishByAliasNameCommand.Parameters["alias_name"].Value =
+        _selectDishByAliasNameCommand.Parameters["normalized_alias_name"].Value =
             Converter.SanitizeString(Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name));
         return (Guid?) _selectDishByAliasNameCommand.ExecuteScalar();
     }
@@ -231,8 +231,8 @@ public class DatabaseWrapper : IDisposable
     public Guid? ExecuteInsertDishAliasCommand(string dishName, Guid dish)
     {
         var extractedDishName = Converter.ExtractElementFromTitle(dishName, Converter.TitleElement.Name);
-        _insertDishAliasCommand.Parameters["original_name"].Value = extractedDishName;
-        _insertDishAliasCommand.Parameters["alias_name"].Value = Converter.SanitizeString(extractedDishName);
+        _insertDishAliasCommand.Parameters["alias_name"].Value = extractedDishName;
+        _insertDishAliasCommand.Parameters["normalized_alias_name"].Value = Converter.SanitizeString(extractedDishName);
         _insertDishAliasCommand.Parameters["dish"].Value = dish;
         return (Guid?) _insertDishAliasCommand.ExecuteScalar();
     }
