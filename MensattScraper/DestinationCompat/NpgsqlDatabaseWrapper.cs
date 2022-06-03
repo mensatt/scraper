@@ -1,12 +1,11 @@
 using System.Data;
-using System.Reflection;
 using MensattScraper.SourceCompat;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace MensattScraper.DestinationCompat;
 
-public class DatabaseWrapper : IDisposable
+public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 {
     private readonly NpgsqlConnection _databaseConnection;
 
@@ -109,11 +108,11 @@ public class DatabaseWrapper : IDisposable
             }
         };
 
-    public DatabaseWrapper(string connectionString)
+    public NpgsqlDatabaseWrapper(string connectionString)
     {
         _databaseConnection = new(connectionString);
 
-        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(DatabaseWrapper), this))
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Connection = _databaseConnection;
 
         _commandBatch.Connection = _databaseConnection;
@@ -124,7 +123,7 @@ public class DatabaseWrapper : IDisposable
         _databaseConnection.Open();
         _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
 
-        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(DatabaseWrapper), this))
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Prepare();
     }
 
@@ -247,7 +246,7 @@ public class DatabaseWrapper : IDisposable
 
     public void Dispose()
     {
-        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(DatabaseWrapper), this))
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Dispose();
 
         _commandBatch.Dispose();

@@ -11,7 +11,7 @@ public class Program
     private const string ApiUrl = "https://www.max-manager.de/daten-extern/sw-erlangen-nuernberg/xml/mensa-sued.xml";
     private const string DbConnection = "HOST=localhost;Port=8080;Username=mensatt;Password=mensatt;Database=mensatt";
 
-    private readonly DatabaseWrapper _databaseWrapper;
+    private readonly IDatabaseWrapper _databaseWrapper;
 
     #region Singleton Creation
 
@@ -19,7 +19,7 @@ public class Program
 
     private Program()
     {
-        _databaseWrapper = new(DbConnection);
+        _databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
     }
 
     private static Program Instance => _instance ??= new();
