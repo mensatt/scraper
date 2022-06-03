@@ -16,6 +16,9 @@ public class FileDataProvider : IDataProvider
             _elements = new();
     }
 
+    // Files should be read as fast as possible
+    public uint GetDataDelayInSeconds => 0;
+
     public bool HasNextStream()
     {
         return _elements.Count > 0;

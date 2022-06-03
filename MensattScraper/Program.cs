@@ -10,7 +10,6 @@ public class Program
 {
     private const string ApiUrl = "https://www.max-manager.de/daten-extern/sw-erlangen-nuernberg/xml/mensa-sued.xml";
     private const string DbConnection = "HOST=localhost;Port=8080;Username=mensatt;Password=mensatt;Database=mensatt";
-    private const int ScrapeDelayInSeconds = 1800;
 
     private readonly DatabaseWrapper _databaseWrapper;
 
@@ -46,7 +45,7 @@ public class Program
         // Dict<01.01.1970, List<Dish UUID -> Occurrence UUID>>
         var dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateCommand();
 
-        IDataProvider dataProvider = new FileDataProvider("content");
+        IDataProvider dataProvider = new HttpDataProvider(ApiUrl);
 
         var timer = new Stopwatch();
 
@@ -186,7 +185,8 @@ public class Program
 
 
             Console.WriteLine(" --> this took " + timer.ElapsedMilliseconds + "ms");
-            // Thread.Sleep(ScrapeDelayInSeconds * 1000);
+
+            Thread.Sleep((int) dataProvider.GetDataDelayInSeconds * 1000);
         }
 
         // Dispose if needed

@@ -6,12 +6,16 @@ public class HttpDataProvider : IDataProvider, IDisposable
 {
     private readonly string _apiUrl;
     private readonly HttpClient _client;
+    private readonly uint _delay;
 
-    public HttpDataProvider(string dataUrl)
+    public HttpDataProvider(string dataUrl, uint delay = 1800)
     {
         _apiUrl = dataUrl;
         _client = new();
+        _delay = delay;
     }
+
+    public uint GetDataDelayInSeconds => _delay;
 
     public bool HasNextStream() => true;
 
