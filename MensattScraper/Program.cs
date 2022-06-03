@@ -108,22 +108,19 @@ public class Program
 
                 foreach (var item in current.Items)
                 {
+                    if (item.Title is null)
+                    {
+                        Console.Error.WriteLine("Item did not contain title");
+                        continue;
+                    }
+
                     // This gets shown as a placeholder, before the different kinds of pizza are known
                     if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
                         continue;
 
-                    var dishUuid = _databaseWrapper.ExecuteSelectDishAliasByNameCommand(item.Title) ??
-                                   _databaseWrapper.ExecuteInsertDishAliasCommand(item.Title,
-                                       (Guid) (_databaseWrapper.ExecuteSelectDishByNameCommand(item.Title) ??
-                                               _databaseWrapper.ExecuteInsertDishCommand(item.Title)!));
+                    var dishUuid = InsertDishIfNotExists(item.Title);
 
-                    if (dishUuid is null)
-                    {
-                        Console.Error.WriteLine("DishUuid was null");
-                        continue;
-                    }
-
-                    dailyDishes.Add(dishUuid.Value);
+                    dailyDishes.Add(dishUuid);
 
                     var occurrenceStatus = firstPullOfTheDay ? ReviewStatus.AWAITING_APPROVAL : ReviewStatus.UPDATED;
 
@@ -141,22 +138,24 @@ public class Program
                     }
 
                     var occurrenceUuid =
-                        (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(current, item, dishUuid.Value,
-                            occurrenceStatus);
+                        (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(current, item, dishUuid,
+                            occurrenceStatus)!;
 
-                    dailyOccurrences[currentDay].Add(new(dishUuid.Value, occurrenceUuid));
+                    dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
                     foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
                     {
                         _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
                     }
 
+                    if (item.Beilagen is null)
+                        continue;
 
                     foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
                     {
-                        var sideDishUuid = _databaseWrapper.ExecuteSelectDishByNameCommand(sideDish) ??
-                                           _databaseWrapper.ExecuteInsertDishCommand(sideDish);
-                        _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid.Value);
+                        var sideDishUuid = InsertDishIfNotExists(sideDish);
+
+                        _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
                     }
                 }
 
@@ -191,5 +190,13 @@ public class Program
             disposableDataProvider.Dispose();
 
         _databaseWrapper.Dispose();
+    }
+
+    private Guid InsertDishIfNotExists(string dishTitle)
+    {
+        return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(dishTitle) ??
+                       _databaseWrapper.ExecuteInsertDishAliasCommand(dishTitle,
+                           (Guid) (_databaseWrapper.ExecuteSelectDishByNameCommand(dishTitle) ??
+                                   _databaseWrapper.ExecuteInsertDishCommand(dishTitle)!)))!;
     }
 }
