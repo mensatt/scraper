@@ -1,39 +1,30 @@
-﻿using System.Diagnostics;
-
-namespace MensattScraper.DataIngest;
+﻿namespace MensattScraper.DataIngest;
 
 public class FileDataProvider : IDataProvider
 {
-    private readonly List<string> _elements;
+    private readonly string _path;
+    private bool _fileRetrieved;
 
     public FileDataProvider(string path)
     {
-        if (File.Exists(path))
-            _elements = new() {path};
-        else if (Directory.Exists(path))
-            _elements = Directory.GetFiles(path, "*.xml").ToList();
-        else
-            _elements = new();
+        _path = path;
     }
 
     // Files should be read as fast as possible
     public uint GetDataDelayInSeconds => 0;
 
-    public bool HasNextStream()
+    public IEnumerable<Stream> RetrieveStream()
     {
-        return _elements.Count > 0;
-    }
-
-    public Stream RetrieveStream()
-    {
-        if (!HasNextStream())
+        if (File.Exists(_path) && !_fileRetrieved)
         {
-            Trace.Assert(false, "This data provider has no more elements");
+            _fileRetrieved = true;
+            yield return File.OpenRead(_path);
         }
 
-        var currentFile = _elements[0];
-        _elements.RemoveAt(0);
 
-        return File.OpenRead(currentFile);
+        if (!Directory.Exists(_path)) yield break;
+
+        foreach (var file in Directory.EnumerateFiles(_path, "*.xml"))
+            yield return File.OpenRead(file);
     }
 }

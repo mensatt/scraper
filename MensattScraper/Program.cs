@@ -50,146 +50,146 @@ public class Program
 
         var timer = new Stopwatch();
 
-        while (dataProvider.HasNextStream())
-        {
-            timer.Restart();
-
-            // Free up entries in the past
-            dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today));
-
-            using var reader = dataProvider.RetrieveStream();
-
-            // Only save data coming from the network, as it may not be readily available
-            if (dataProvider is HttpDataProvider)
+        foreach (var dataStream in dataProvider.RetrieveStream())
+            using (dataStream)
             {
-                using var outputFile =
-                    File.Create(
-                        $"content{Path.DirectorySeparatorChar}{DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss")}.xml");
-                reader.CopyTo(outputFile);
-                reader.Position = 0;
-            }
+                timer.Restart();
 
-            var menu = (Speiseplan?) serializer.Deserialize(reader);
+                // Free up entries in the past
+                dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today));
 
-            if (menu is null)
-            {
-                Console.Error.WriteLine("Could not deserialize menu");
-                continue;
-            }
-
-            // Happens on holidays, where the xml is provided but empty
-            if (menu.Tags is null)
-            {
-                Console.Error.WriteLine("Menu Tag was null");
-                continue;
-            }
-
-            foreach (var current in menu.Tags)
-            {
-                if (current.Items is null)
+                // Only save data coming from the network, as it may not be readily available
+                if (dataProvider is HttpDataProvider)
                 {
-                    Console.Error.WriteLine("Day contained no items");
+                    using var outputFile =
+                        File.Create(
+                            $"content{Path.DirectorySeparatorChar}{DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss")}.xml");
+                    dataStream.CopyTo(outputFile);
+                    dataStream.Position = 0;
+                }
+
+                var menu = (Speiseplan?) serializer.Deserialize(dataStream);
+
+                if (menu is null)
+                {
+                    Console.Error.WriteLine("Could not deserialize menu");
                     continue;
                 }
 
-                var currentDay = Converter.GetDateFromTimestamp(current.Timestamp);
-                var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
-                bool firstPullOfTheDay;
-                if (!dailyOccurrences.ContainsKey(currentDay))
+                // Happens on holidays, where the xml is provided but empty
+                if (menu.Tags is null)
                 {
-                    dailyOccurrences.Add(currentDay, new());
-                    firstPullOfTheDay = true;
-                }
-                else
-                {
-                    firstPullOfTheDay = false;
+                    Console.Error.WriteLine("Menu Tag was null");
+                    continue;
                 }
 
-                // Used to compare the dishes of one day with the dishes of the same day, on a previous scrape
-                // Without this, it would not be possible to check for removed dishes (which get deleted if they are
-                // to far in the future)
-                var dailyDishes = new HashSet<Guid>();
-
-                _databaseWrapper.ResetBatch();
-
-                foreach (var item in current.Items)
+                foreach (var current in menu.Tags)
                 {
-                    if (item.Title is null)
+                    if (current.Items is null)
                     {
-                        Console.Error.WriteLine("Item did not contain title");
+                        Console.Error.WriteLine("Day contained no items");
                         continue;
                     }
 
-                    // This gets shown as a placeholder, before the different kinds of pizza are known
-                    if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
-                        continue;
-
-                    var dishUuid = InsertDishIfNotExists(item.Title);
-
-                    dailyDishes.Add(dishUuid);
-
-                    var occurrenceStatus = firstPullOfTheDay ? ReviewStatus.AWAITING_APPROVAL : ReviewStatus.UPDATED;
-
-                    if (!firstPullOfTheDay)
+                    var currentDay = Converter.GetDateFromTimestamp(current.Timestamp);
+                    var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
+                    bool firstPullOfTheDay;
+                    if (!dailyOccurrences.ContainsKey(currentDay))
                     {
-                        var savedDishOccurrence = dailyOccurrences[currentDay].Find(x => x.Item1 == dishUuid);
-
-                        // If we got an occurrence with this dish already, do nothing
-                        if (savedDishOccurrence is not null)
-                            continue; // Update in the future
-
-                        // If it is in the far future, the old one will be replaced by this
-                        if (isInFarFuture)
-                            occurrenceStatus = ReviewStatus.AWAITING_APPROVAL;
+                        dailyOccurrences.Add(currentDay, new());
+                        firstPullOfTheDay = true;
+                    }
+                    else
+                    {
+                        firstPullOfTheDay = false;
                     }
 
-                    var occurrenceUuid =
-                        (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(current, item, dishUuid,
-                            occurrenceStatus)!;
+                    // Used to compare the dishes of one day with the dishes of the same day, on a previous scrape
+                    // Without this, it would not be possible to check for removed dishes (which get deleted if they are
+                    // to far in the future)
+                    var dailyDishes = new HashSet<Guid>();
 
-                    dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
+                    _databaseWrapper.ResetBatch();
 
-                    foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
+                    foreach (var item in current.Items)
                     {
-                        _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
+                        if (item.Title is null)
+                        {
+                            Console.Error.WriteLine("Item did not contain title");
+                            continue;
+                        }
+
+                        // This gets shown as a placeholder, before the different kinds of pizza are known
+                        if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
+                            continue;
+
+                        var dishUuid = InsertDishIfNotExists(item.Title);
+
+                        dailyDishes.Add(dishUuid);
+
+                        var occurrenceStatus =
+                            firstPullOfTheDay ? ReviewStatus.AWAITING_APPROVAL : ReviewStatus.UPDATED;
+
+                        if (!firstPullOfTheDay)
+                        {
+                            var savedDishOccurrence = dailyOccurrences[currentDay].Find(x => x.Item1 == dishUuid);
+
+                            // If we got an occurrence with this dish already, do nothing
+                            if (savedDishOccurrence is not null)
+                                continue; // Update in the future
+
+                            // If it is in the far future, the old one will be replaced by this
+                            if (isInFarFuture)
+                                occurrenceStatus = ReviewStatus.AWAITING_APPROVAL;
+                        }
+
+                        var occurrenceUuid =
+                            (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(current, item, dishUuid,
+                                occurrenceStatus)!;
+
+                        dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
+
+                        foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
+                        {
+                            _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
+                        }
+
+                        if (item.Beilagen is null)
+                            continue;
+
+                        foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
+                        {
+                            var sideDishUuid = InsertDishIfNotExists(sideDish);
+
+                            _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
+                        }
                     }
 
-                    if (item.Beilagen is null)
-                        continue;
+                    _databaseWrapper.ExecuteBatch();
 
-                    foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
+
+                    // Delete all dishes, that were removed on a day which is more than two days in the future
+
+
+                    foreach (var (dishId, occurrenceId) in dailyOccurrences[currentDay])
                     {
-                        var sideDishUuid = InsertDishIfNotExists(sideDish);
-
-                        _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
+                        // If this dish does not exist in the current XML, delete it
+                        if (!dailyDishes.Contains(dishId))
+                        {
+                            if (isInFarFuture)
+                                _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(occurrenceId);
+                            else
+                                _databaseWrapper.ExecuteUpdateOccurrenceReviewStatusByIdCommand(
+                                    ReviewStatus.PENDING_DELETION, occurrenceId);
+                        }
                     }
                 }
 
-                _databaseWrapper.ExecuteBatch();
 
+                Console.WriteLine(" --> this took " + timer.ElapsedMilliseconds + "ms");
 
-                // Delete all dishes, that were removed on a day which is more than two days in the future
-
-
-                foreach (var (dishId, occurrenceId) in dailyOccurrences[currentDay])
-                {
-                    // If this dish does not exist in the current XML, delete it
-                    if (!dailyDishes.Contains(dishId))
-                    {
-                        if (isInFarFuture)
-                            _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(occurrenceId);
-                        else
-                            _databaseWrapper.ExecuteUpdateOccurrenceReviewStatusByIdCommand(
-                                ReviewStatus.PENDING_DELETION, occurrenceId);
-                    }
-                }
+                Thread.Sleep((int) dataProvider.GetDataDelayInSeconds * 1000);
             }
-
-
-            Console.WriteLine(" --> this took " + timer.ElapsedMilliseconds + "ms");
-
-            Thread.Sleep((int) dataProvider.GetDataDelayInSeconds * 1000);
-        }
 
         // Dispose if needed
         if (dataProvider is IDisposable disposableDataProvider)
