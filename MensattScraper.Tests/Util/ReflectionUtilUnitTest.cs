@@ -1,6 +1,10 @@
 ﻿using System.Reflection;
 using MensattScraper.Util;
 
+// ReSharper disable MemberCanBePrivate.Global
+
+// ReSharper disable ConvertToConstant.Local
+
 // ReSharper disable PossibleMultipleEnumeration
 
 namespace MensattScraper.Tests.Util;
@@ -11,13 +15,13 @@ public class ReflectionUtilUnitTest
     private readonly string _stringField2 = "1";
     private readonly string _stringField3 = "2";
 
-    public object ObjectField1 = new();
-    public object ObjectField2 = new();
+    public readonly object ObjectField1 = new();
+    public readonly object ObjectField2 = new();
 
-    private static readonly Exception _staticExceptionField1 = new();
-    private static readonly Exception _staticExceptionField2 = new();
-    private static readonly Exception _staticExceptionField3 = new();
-    private static readonly Exception _staticExceptionField4 = new();
+    private static readonly Exception StaticExceptionField1 = new();
+    private static readonly Exception StaticExceptionField2 = new();
+    private static readonly Exception StaticExceptionField3 = new();
+    private static readonly Exception StaticExceptionField4 = new();
 
     [Fact]
     public void ZeroPrivateInstanceReflectionUtilUnitTestFields()
@@ -68,6 +72,6 @@ public class ReflectionUtilUnitTest
             BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.True(fields.SequenceEqual(new[]
-            {_staticExceptionField1, _staticExceptionField2, _staticExceptionField3, _staticExceptionField4}));
+            {StaticExceptionField1, StaticExceptionField2, StaticExceptionField3, StaticExceptionField4}));
     }
 }
