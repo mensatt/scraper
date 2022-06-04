@@ -3,7 +3,10 @@ namespace MensattScraper.DestinationCompat;
 internal static class DatabaseConstants
 {
     internal const string SelectIdByNameSql = "SELECT id FROM dish WHERE name=@name";
-    internal const string SelectDishIdByAliasNameSql = "SELECT dish FROM dish_alias WHERE normalized_alias_name=@normalized_alias_name";
+
+    internal const string SelectDishIdByAliasNameSql =
+        "SELECT dish FROM dish_alias WHERE normalized_alias_name=@normalized_alias_name";
+
     internal const string SelectOccurrenceIdNameDateSql = "SELECT id, dish, date FROM occurrence";
 
     internal const string InsertDishWithNameSql =
