@@ -4,7 +4,7 @@ namespace MensattScraper.Util;
 
 public static class ReflectionUtil
 {
-    public static IEnumerable<T> GetFieldsWithType<T>(Type type, object callee,
+    public static IEnumerable<T> GetFieldValuesWithType<T>(Type type, object callee,
         BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance) where T : class
     {
         foreach (var fieldInfo in type.GetFields(flags))

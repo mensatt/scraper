@@ -113,7 +113,8 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     {
         _databaseConnection = new(connectionString);
 
-        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(NpgsqlDatabaseWrapper), this))
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
+                     typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Connection = _databaseConnection;
 
         _commandBatch.Connection = _databaseConnection;
@@ -124,7 +125,8 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _databaseConnection.Open();
         _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
 
-        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(NpgsqlDatabaseWrapper), this))
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
+                     typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Prepare();
     }
 
@@ -247,7 +249,8 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public void Dispose()
     {
-        foreach (var npgsqlCommand in ReflectionUtil.GetFieldsWithType<NpgsqlCommand>(typeof(NpgsqlDatabaseWrapper), this))
+        foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
+                     typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Dispose();
 
         _commandBatch.Dispose();
