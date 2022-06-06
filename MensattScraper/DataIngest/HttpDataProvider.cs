@@ -2,12 +2,13 @@
 
 public class HttpDataProvider : IDataProvider, IDisposable
 {
-    private readonly string _apiUrl;
     private readonly HttpClient _client;
+
+    internal string ApiUrl { get; }
 
     public HttpDataProvider(string dataUrl, uint delay = 1800)
     {
-        _apiUrl = dataUrl;
+        ApiUrl = dataUrl;
         _client = new();
         GetDataDelayInSeconds = delay;
     }
@@ -17,7 +18,7 @@ public class HttpDataProvider : IDataProvider, IDisposable
     public IEnumerable<Stream> RetrieveStream()
     {
         // Should be disposed when the stream is disposed
-        var httpResponse = _client.GetAsync(_apiUrl).Result;
+        var httpResponse = _client.GetAsync(ApiUrl).Result;
 
         yield return httpResponse.Content.ReadAsStream();
     }

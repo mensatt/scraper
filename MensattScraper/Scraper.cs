@@ -11,17 +11,28 @@ namespace MensattScraper;
 public class Scraper : IDisposable
 {
     private readonly XmlSerializer _xmlSerializer;
-    private readonly IDataProvider _dataProvider;
+
+    private readonly IDataProvider _primaryDataProvider;
+
+    // Used to support another language
+    private readonly IDataProvider? _secondaryDataProvider;
+
     private readonly IDatabaseWrapper _databaseWrapper;
     private DatabaseMapping _databaseMapping = null!;
 
     private Dictionary<DateOnly, List<Tuple<Guid, Guid>>>? _dailyOccurrences;
 
-    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider dataProvider)
+    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider primaryDataProvider)
     {
         _databaseWrapper = databaseWrapper;
-        _dataProvider = dataProvider;
+        _primaryDataProvider = primaryDataProvider;
         _xmlSerializer = new(typeof(Speiseplan));
+
+        // Multi-lang is only supported for HttpDataProviders for now
+        if (_primaryDataProvider is HttpDataProvider httpDataProvider)
+        {
+            _secondaryDataProvider = new HttpDataProvider(httpDataProvider.ApiUrl.Replace("xml/", "xml/en/"));
+        }
     }
 
     public void Initialize()
@@ -40,41 +51,42 @@ public class Scraper : IDisposable
 
         var timer = new Stopwatch();
 
-        foreach (var rawStream in _dataProvider.RetrieveStream())
+        foreach (var primaryRawStream in _primaryDataProvider.RetrieveStream())
         {
-            using var dataStream = rawStream;
-
             timer.Restart();
 
             // Free up entries in the past
             _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today));
 
-            // Only save data coming from the network, as it may not be readily available
-            if (_dataProvider is HttpDataProvider)
-            {
-                using var outputFile =
-                    File.Create(
-                        $"content{Path.DirectorySeparatorChar}{DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss")}.xml");
-                dataStream.CopyTo(outputFile);
-                dataStream.Position = 0;
-            }
+            using var primaryDataStream = primaryRawStream;
 
-            var menu = (Speiseplan?) _xmlSerializer.Deserialize(dataStream);
+            // Retrieve secondary stream if necessary
+            var secondaryRawStream = _secondaryDataProvider?.RetrieveStream();
+            using var secondaryDataStream = secondaryRawStream?.First();
 
-            if (menu is null)
+            SaveDataStream(_primaryDataProvider, primaryDataStream);
+            SaveDataStream(_secondaryDataProvider, secondaryDataStream);
+
+            var primaryMenu = (Speiseplan?) _xmlSerializer.Deserialize(primaryDataStream);
+            var secondaryMenu = secondaryDataStream != null
+                ? (Speiseplan?) _xmlSerializer.Deserialize(secondaryDataStream)
+                : null;
+
+            if (primaryMenu is null)
             {
                 Console.Error.WriteLine("Could not deserialize menu");
                 continue;
             }
 
             // Happens on holidays, where the xml is provided but empty
-            if (menu.Tags is null)
+            if (primaryMenu.Tags is null)
             {
                 Console.Error.WriteLine("Menu DayTag was null");
                 continue;
             }
 
-            foreach (var current in menu.Tags)
+            uint secondaryDayTagIndex = 0;
+            foreach (var current in primaryMenu.Tags)
             {
                 if (current.Items is null)
                 {
@@ -102,6 +114,7 @@ public class Scraper : IDisposable
 
                 _databaseWrapper.ResetBatch();
 
+                uint secondaryItemIndex = 0;
                 foreach (var item in current.Items)
                 {
                     if (item.Title is null)
@@ -114,7 +127,10 @@ public class Scraper : IDisposable
                     if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
                         continue;
 
-                    var dishUuid = InsertDishIfNotExists(item.Title);
+                    var secondaryTitle = secondaryMenu?.Tags?[secondaryDayTagIndex].Items?[secondaryItemIndex].Title;
+                    secondaryItemIndex++;
+
+                    var dishUuid = InsertDishIfNotExists(item.Title, secondaryTitle);
 
                     dailyDishes.Add(dishUuid);
 
@@ -136,7 +152,8 @@ public class Scraper : IDisposable
 
                     var occurrenceUuid =
                         (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(
-                            _databaseMapping.GetLocationGuidByLocationId(menu.LocationId), current, item, dishUuid,
+                            _databaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId), current, item,
+                            dishUuid,
                             occurrenceStatus)!;
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
@@ -149,11 +166,17 @@ public class Scraper : IDisposable
                     if (item.Beilagen is null)
                         continue;
 
+                    var secondarySideDishIndex = 0;
                     foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
                     {
-                        var sideDishUuid = InsertDishIfNotExists(sideDish);
+                        var secondarySideDishTitle =
+                            Converter.GetSideDishes(secondaryMenu?.Tags?[secondaryDayTagIndex]
+                                .Items?[secondaryItemIndex].Beilagen ?? string.Empty)[secondarySideDishIndex];
+
+                        var sideDishUuid = InsertDishIfNotExists(sideDish, secondarySideDishTitle);
 
                         _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
+                        secondarySideDishIndex++;
                     }
                 }
 
@@ -175,25 +198,40 @@ public class Scraper : IDisposable
                                 ReviewStatus.PENDING_DELETION, occurrenceId);
                     }
                 }
+
+                secondaryDayTagIndex++;
             }
 
             Console.WriteLine($"Scraping took {timer.ElapsedMilliseconds}ms");
 
-            Thread.Sleep((int) _dataProvider.GetDataDelayInSeconds * 1000);
+            Thread.Sleep((int) _primaryDataProvider.GetDataDelayInSeconds * 1000);
         }
     }
 
-    private Guid InsertDishIfNotExists(string dishTitle)
+    private static void SaveDataStream(IDataProvider? dataProvider, Stream? stream)
     {
-        return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(dishTitle) ??
-                       _databaseWrapper.ExecuteInsertDishAliasCommand(dishTitle,
-                           (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(dishTitle) ??
-                                   _databaseWrapper.ExecuteInsertGermanDishCommand(dishTitle)!)))!;
+        if (dataProvider is null || stream is null)
+            return;
+        // Only save data coming from the network, as it may not be readily available
+        if (dataProvider is not HttpDataProvider) return;
+        using var outputFile =
+            File.Create(
+                $"content{Path.DirectorySeparatorChar}{DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss.fff")}.xml");
+        stream.CopyTo(outputFile);
+        stream.Position = 0;
+    }
+
+    private Guid InsertDishIfNotExists(string primaryDishTitle, string secondaryDishTitle)
+    {
+        return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle) ??
+                       _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
+                           (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
+                                   _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!)))!;
     }
 
     public void Dispose()
     {
-        if (_dataProvider is IDisposable disposableDataProvider)
+        if (_primaryDataProvider is IDisposable disposableDataProvider)
             disposableDataProvider.Dispose();
 
         _databaseWrapper.Dispose();

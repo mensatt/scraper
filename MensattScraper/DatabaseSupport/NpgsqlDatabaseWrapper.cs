@@ -216,12 +216,12 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return tagList;
     }
 
-    public Guid? ExecuteInsertGermanDishCommand(string title)
+    public Guid? ExecuteInsertDishCommand(string primaryTitle, string? secondaryTitle)
     {
         _insertDishCommand.Parameters["name_de"].Value =
-            Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);
-        // TODO: Support english dish titles
-        _insertDishCommand.Parameters["name_en"].Value = "unsupported" + Random.Shared.NextInt64();
+            Converter.ExtractElementFromTitle(primaryTitle, Converter.TitleElement.Name);
+        _insertDishCommand.Parameters["name_en"].Value =
+            Converter.ExtractElementFromTitle(secondaryTitle ?? string.Empty, Converter.TitleElement.Name);
         return (Guid?) _insertDishCommand.ExecuteScalar();
     }
 
