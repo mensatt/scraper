@@ -1,22 +1,26 @@
-namespace MensattScraper.DestinationCompat;
+namespace MensattScraper.DatabaseSupport;
 
 internal static class DatabaseConstants
 {
-    internal const string SelectIdByNameSql = "SELECT id FROM dish WHERE name=@name";
+    internal const string SelectIdByGermanNameSql = "SELECT id FROM dish WHERE name_de=@name_de";
 
     internal const string SelectDishIdByAliasNameSql =
         "SELECT dish FROM dish_alias WHERE normalized_alias_name=@normalized_alias_name";
 
     internal const string SelectOccurrenceIdNameDateSql = "SELECT id, dish, date FROM occurrence";
 
-    internal const string InsertDishWithNameSql =
-        "INSERT INTO dish (name) VALUES (@name) ON CONFLICT (name) DO NOTHING RETURNING id";
+    internal const string SelectLocationIdNameLocationId = "SELECT id, name, location_id FROM location";
+
+    internal const string SelectTagAll = "SELECT * FROM tag";
+
+    internal const string InsertDishWithGermanNameSql =
+        "INSERT INTO dish (name_de, name_en) VALUES (@name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";
 
     internal const string InsertOccurrenceSql =
-        "INSERT INTO occurrence (dish, date, review_status, kj, kcal, fat, saturated_fat, " +
+        "INSERT INTO occurrence (location, dish, date, review_status, kj, kcal, fat, saturated_fat, " +
         "carbohydrates, sugar, fiber, protein, salt, price_student, " +
         "price_staff, price_guest) " +
-        "VALUES (@dish, @date, @review_status, @kj, @kcal, @fat, @saturated_fat, " +
+        "VALUES (@location, @dish, @date, @review_status, @kj, @kcal, @fat, @saturated_fat, " +
         "@carbohydrates, @sugar, @fiber, @protein, @salt, @price_student, " +
         "@price_staff, @price_guest) RETURNING id";
 

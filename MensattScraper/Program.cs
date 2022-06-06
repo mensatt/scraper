@@ -1,4 +1,5 @@
-﻿using MensattScraper.DataIngest;
+﻿using MensattScraper.DatabaseSupport;
+using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 
 namespace MensattScraper;

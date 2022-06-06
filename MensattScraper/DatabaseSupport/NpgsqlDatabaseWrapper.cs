@@ -1,20 +1,23 @@
 using System.Data;
+using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
 using MensattScraper.Util;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace MensattScraper.DestinationCompat;
+namespace MensattScraper.DatabaseSupport;
 
 public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 {
     private readonly NpgsqlConnection _databaseConnection;
 
-    private readonly NpgsqlCommand _selectDishByNameCommand = new(DatabaseConstants.SelectIdByNameSql)
+    #region Command Properties
+
+    private readonly NpgsqlCommand _selectDishByGermanNameCommand = new(DatabaseConstants.SelectIdByGermanNameSql)
     {
         Parameters =
         {
-            new("name", NpgsqlDbType.Varchar)
+            new("name_de", NpgsqlDbType.Varchar)
         }
     };
 
@@ -29,11 +32,17 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     private readonly NpgsqlCommand _selectOccurrenceIdNameDateCommand =
         new(DatabaseConstants.SelectOccurrenceIdNameDateSql);
 
-    private readonly NpgsqlCommand _insertDishCommand = new(DatabaseConstants.InsertDishWithNameSql)
+    private readonly NpgsqlCommand _selectLocationIdNameLocationIdCommand =
+        new(DatabaseConstants.SelectLocationIdNameLocationId);
+
+    private readonly NpgsqlCommand _selectTagAllCommand = new(DatabaseConstants.SelectTagAll);
+
+    private readonly NpgsqlCommand _insertDishCommand = new(DatabaseConstants.InsertDishWithGermanNameSql)
     {
         Parameters =
         {
-            new("name", NpgsqlDbType.Varchar)
+            new("name_de", NpgsqlDbType.Varchar),
+            new("name_en", NpgsqlDbType.Varchar)
         }
     };
 
@@ -41,6 +50,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     {
         Parameters =
         {
+            new("location", NpgsqlDbType.Uuid),
             new("dish", NpgsqlDbType.Uuid),
             new("date", NpgsqlDbType.Date),
             new("review_status", NpgsqlDbType.Unknown),
@@ -109,6 +119,8 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             }
         };
 
+    #endregion
+
     public NpgsqlDatabaseWrapper(string connectionString)
     {
         _databaseConnection = new(connectionString);
@@ -124,6 +136,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     {
         _databaseConnection.Open();
         _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
+        _databaseConnection.TypeMapper.MapEnum<Priority>("priority");
 
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
                      typeof(NpgsqlDatabaseWrapper), this))
@@ -150,11 +163,11 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _commandBatch.BatchCommands.Add(command);
     }
 
-    public Guid? ExecuteSelectDishByNameCommand(string name)
+    public Guid? ExecuteSelectDishByGermanNameCommand(string name)
     {
-        _selectDishByNameCommand.Parameters["name"].Value =
+        _selectDishByGermanNameCommand.Parameters["name_de"].Value =
             Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name);
-        return (Guid?) _selectDishByNameCommand.ExecuteScalar();
+        return (Guid?) _selectDishByGermanNameCommand.ExecuteScalar();
     }
 
     public Guid? ExecuteSelectDishAliasByNameCommand(string name)
@@ -181,17 +194,43 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return dateMapping;
     }
 
-    public Guid? ExecuteInsertDishCommand(string title)
+    public List<Location> ExecuteSelectIdNameLocationIdCommand()
     {
-        _insertDishCommand.Parameters["name"].Value =
+        var locationList = new List<Location>();
+        using var reader = _selectLocationIdNameLocationIdCommand.ExecuteReader();
+        while (reader.Read())
+            locationList.Add(new(reader.GetGuid("id"), reader.GetString("name"),
+                (uint) reader.GetInt32("location_id")));
+        return locationList;
+    }
+
+    public List<Tag> ExecuteSelectTagAllCommand()
+    {
+        var tagList = new List<Tag>();
+        using var reader = _selectTagAllCommand.ExecuteReader();
+        while (reader.Read())
+            tagList.Add(new(reader.GetString("key"), reader.GetString("name"), reader.GetString("description"),
+                reader.GetValue("short_name") as string,
+                Priority.UNSET, // TODO: reader.GetValue("priority") is Priority ? (Priority) reader.GetValue("priority") :
+                reader.GetBoolean("is_allergy")));
+        return tagList;
+    }
+
+    public Guid? ExecuteInsertGermanDishCommand(string title)
+    {
+        _insertDishCommand.Parameters["name_de"].Value =
             Converter.ExtractElementFromTitle(title, Converter.TitleElement.Name);
+        // TODO: Support english dish titles
+        _insertDishCommand.Parameters["name_en"].Value = "unsupported" + Random.Shared.NextInt64();
         return (Guid?) _insertDishCommand.ExecuteScalar();
     }
 
-    public Guid? ExecuteInsertOccurrenceCommand(Tag tag, Item item, Guid dish, ReviewStatus status)
+    public Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
+        ReviewStatus status)
     {
+        _insertOccurrenceCommand.Parameters["location"].Value = locationId;
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
-        _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(tag.Timestamp);
+        _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(dayTag.Timestamp);
         _insertOccurrenceCommand.Parameters["review_status"].Value = status;
         var kj = Converter.FloatStringToInt(item.Kj);
         _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 1000;

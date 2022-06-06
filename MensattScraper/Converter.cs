@@ -13,6 +13,7 @@ public static class Converter
         Tag
     }
 
+    // TODO: Replace with database tags -> DatabaseMapping
     private static readonly HashSet<string> KnownTags = new()
     {
         "1",

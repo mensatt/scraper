@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Xml.Serialization;
+using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
@@ -12,6 +13,7 @@ public class Scraper : IDisposable
     private readonly XmlSerializer _xmlSerializer;
     private readonly IDataProvider _dataProvider;
     private readonly IDatabaseWrapper _databaseWrapper;
+    private DatabaseMapping _databaseMapping = null!;
 
     private Dictionary<DateOnly, List<Tuple<Guid, Guid>>>? _dailyOccurrences;
 
@@ -26,6 +28,9 @@ public class Scraper : IDisposable
     {
         _databaseWrapper.ConnectAndPrepare();
         _dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateCommand();
+        // TODO: Make global over all scrapers
+        _databaseMapping = new(_databaseWrapper);
+        _databaseMapping.RefreshDatabaseMappings();
     }
 
     public void Scrape()
@@ -65,7 +70,7 @@ public class Scraper : IDisposable
             // Happens on holidays, where the xml is provided but empty
             if (menu.Tags is null)
             {
-                Console.Error.WriteLine("Menu Tag was null");
+                Console.Error.WriteLine("Menu DayTag was null");
                 continue;
             }
 
@@ -130,7 +135,8 @@ public class Scraper : IDisposable
                     }
 
                     var occurrenceUuid =
-                        (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(current, item, dishUuid,
+                        (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(
+                            _databaseMapping.GetLocationGuidByLocationId(menu.LocationId), current, item, dishUuid,
                             occurrenceStatus)!;
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
@@ -181,8 +187,8 @@ public class Scraper : IDisposable
     {
         return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(dishTitle) ??
                        _databaseWrapper.ExecuteInsertDishAliasCommand(dishTitle,
-                           (Guid) (_databaseWrapper.ExecuteSelectDishByNameCommand(dishTitle) ??
-                                   _databaseWrapper.ExecuteInsertDishCommand(dishTitle)!)))!;
+                           (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(dishTitle) ??
+                                   _databaseWrapper.ExecuteInsertGermanDishCommand(dishTitle)!)))!;
     }
 
     public void Dispose()

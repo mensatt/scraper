@@ -1,20 +1,27 @@
-﻿using MensattScraper.SourceCompat;
+﻿using MensattScraper.DestinationCompat;
+using MensattScraper.SourceCompat;
 
-namespace MensattScraper.DestinationCompat;
+namespace MensattScraper.DatabaseSupport;
 
-public interface IDatabaseWrapper : IDisposable
+public interface IDatabaseWrapper
 {
     void ConnectAndPrepare();
     void ResetBatch();
     void ExecuteBatch();
     void AddInsertOccurrenceTagCommandToBatch(Guid occurrence, string tag);
     void AddInsertOccurrenceSideDishCommandToBatch(Guid occurrence, Guid sideDish);
-    Guid? ExecuteSelectDishByNameCommand(string name);
+    Guid? ExecuteSelectDishByGermanNameCommand(string name);
     Guid? ExecuteSelectDishAliasByNameCommand(string name);
     Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateCommand();
-    Guid? ExecuteInsertDishCommand(string title);
-    Guid? ExecuteInsertOccurrenceCommand(Tag tag, Item item, Guid dish, ReviewStatus status);
+    List<Location> ExecuteSelectIdNameLocationIdCommand();
+    List<Tag> ExecuteSelectTagAllCommand();
+    Guid? ExecuteInsertGermanDishCommand(string title);
+
+    Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
+        ReviewStatus status);
+
     Guid? ExecuteInsertDishAliasCommand(string dishName, Guid dish);
     void ExecuteUpdateOccurrenceReviewStatusByIdCommand(ReviewStatus status, Guid id);
     void ExecuteDeleteOccurrenceByIdCommand(Guid id);
+    void Dispose();
 }
