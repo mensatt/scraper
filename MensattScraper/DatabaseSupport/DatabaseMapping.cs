@@ -17,10 +17,16 @@ public class DatabaseMapping
 
     public void RefreshDatabaseMappings()
     {
-        _locations = _databaseWrapper.ExecuteSelectIdNameLocationIdCommand();
-        _tags = _databaseWrapper.ExecuteSelectTagAllCommand();
+        // Locking on the current instance only works, because this is essentially a singleton.
+        // This needs to be enforced, otherwise synchronisation errors will occur.
+        lock (this)
+        {
+            _locations = _databaseWrapper.ExecuteSelectIdNameLocationIdCommand();
+            _tags = _databaseWrapper.ExecuteSelectTagAllCommand();
+        }
     }
 
+    // I believe those methods don't need to be locked, as they are readonly
     public Guid GetLocationGuidByLocationId(int id) => _locations.Find(location => location.LocationId == id).Id;
     public bool IsTagValid(string tagKey) => _tags.Any(tag => tag.Key == tagKey);
 }

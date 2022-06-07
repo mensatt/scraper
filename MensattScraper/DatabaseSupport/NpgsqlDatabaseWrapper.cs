@@ -135,8 +135,9 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     public void ConnectAndPrepare()
     {
         _databaseConnection.Open();
-        _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status");
-        _databaseConnection.TypeMapper.MapEnum<Priority>("priority");
+        INpgsqlNameTranslator nameTranslator = new PostgresNameTranslator();
+        _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status", nameTranslator);
+        _databaseConnection.TypeMapper.MapEnum<Priority>("priority", nameTranslator);
 
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
                      typeof(NpgsqlDatabaseWrapper), this))
@@ -211,7 +212,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         while (reader.Read())
             tagList.Add(new(reader.GetString("key"), reader.GetString("name"), reader.GetString("description"),
                 reader.GetValue("short_name") as string,
-                Priority.UNSET, // TODO: reader.GetValue("priority") is Priority ? (Priority) reader.GetValue("priority") :
+                (Priority) reader.GetValue("priority"),
                 reader.GetBoolean("is_allergy")));
         return tagList;
     }

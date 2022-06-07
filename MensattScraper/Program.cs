@@ -1,6 +1,5 @@
 ﻿using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
-using MensattScraper.DestinationCompat;
 
 namespace MensattScraper;
 
@@ -20,9 +19,14 @@ public class Program
 
     private void StartScraper()
     {
+        IDatabaseWrapper privateDatabaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
+        privateDatabaseWrapper.ConnectAndPrepare();
+        var databaseMapper = new DatabaseMapping(privateDatabaseWrapper);
+
+        // Creating multiple database wrappers on the same connection should be fine, as they are pooled
         IDatabaseWrapper databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
         IDataProvider dataProvider = new HttpDataProvider(ApiUrl);
-        using var scraper = new Scraper(databaseWrapper, dataProvider);
+        using var scraper = new Scraper(databaseWrapper, databaseMapper, dataProvider);
         scraper.Initialize();
         scraper.Scrape();
     }
