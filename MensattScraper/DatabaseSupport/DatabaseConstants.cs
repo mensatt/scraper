@@ -9,7 +9,7 @@ internal static class DatabaseConstants
 
     internal const string SelectOccurrenceIdNameDateSql = "SELECT id, dish, date FROM occurrence";
 
-    internal const string SelectLocationIdNameLocationId = "SELECT id, name, location_id FROM location";
+    internal const string SelectLocationIdNameLocationId = "SELECT id, name, external_id FROM location";
 
     internal const string SelectTagAll = "SELECT * FROM tag";
 

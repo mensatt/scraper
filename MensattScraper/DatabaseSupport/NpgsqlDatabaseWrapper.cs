@@ -200,7 +200,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         using var reader = _selectLocationIdNameLocationIdCommand.ExecuteReader();
         while (reader.Read())
             locationList.Add(new(reader.GetGuid("id"), reader.GetString("name"),
-                (uint) reader.GetInt32("location_id")));
+                (uint) reader.GetInt32("external_id")));
         return locationList;
     }
 
