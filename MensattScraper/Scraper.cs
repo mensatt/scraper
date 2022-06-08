@@ -54,8 +54,8 @@ public class Scraper : IDisposable
         {
             timer.Restart();
 
-            // Free up entries in the past
-            _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today));
+            // Free up entries that are more than 3 days old
+            _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddDays(-3));
 
             using var primaryDataStream = primaryRawStream;
 
