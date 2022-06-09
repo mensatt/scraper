@@ -168,9 +168,14 @@ public class Scraper : IDisposable
                     var secondarySideDishIndex = 0;
                     foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
                     {
-                        var secondarySideDishTitle =
-                            Converter.GetSideDishes(secondaryMenu?.Tags?[secondaryDayTagIndex]
-                                .Items?[secondaryItemIndex].Beilagen ?? string.Empty)[secondarySideDishIndex];
+                        var secondarySideDishTitle = "UNKNOWN";
+                        if (secondaryMenu?.Tags?[secondaryDayTagIndex]
+                                .Items?[secondaryItemIndex].Beilagen.Length != 0)
+                        {
+                            secondarySideDishTitle =
+                                Converter.GetSideDishes(secondaryMenu?.Tags?[secondaryDayTagIndex]
+                                    .Items?[secondaryItemIndex].Beilagen ?? string.Empty)[secondarySideDishIndex];
+                        }
 
                         var sideDishUuid = InsertDishIfNotExists(sideDish, secondarySideDishTitle);
 
