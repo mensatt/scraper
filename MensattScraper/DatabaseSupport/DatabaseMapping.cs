@@ -19,9 +19,7 @@ public static class DatabaseMapping
 
         try
         {
-            DatabaseWrapper =
-                new NpgsqlDatabaseWrapper(
-                    "HOST=localhost;Port=8080;Username=mensatt;Password=mensatt;Database=mensatt");
+            DatabaseWrapper = new NpgsqlDatabaseWrapper(Configuration.DbConnection);
             DatabaseWrapper.ConnectAndPrepare();
             RefreshDatabaseMappings();
         }
