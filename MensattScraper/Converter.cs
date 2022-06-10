@@ -71,7 +71,7 @@ public static class Converter
             currentParenthesisIndex = end + 1;
         }
 
-        return output.Trim(' ', ',').RemoveMultipleWhiteSpaces();
+        return output.Trim(' ', ',').RemoveMultipleWhiteSpaces().FirstCharUpper();
     }
 
     public static string SanitizeString(string input) =>
@@ -99,6 +99,15 @@ public static class Converter
 
     public static string RemoveMultipleWhiteSpaces(this string input) =>
         string.Join(' ', input.Split(' ').Where(x => !string.IsNullOrEmpty(x)));
+
+    public static string FirstCharUpper(this string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+        if (input.Length == 1)
+            return char.ToUpper(input[0]).ToString();
+        return char.ToUpper(input[0]) + input[1..];
+    }
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
         ExtractElementFromTitle(title, TitleElement.Tag).Split(',')
