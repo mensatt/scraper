@@ -21,12 +21,10 @@ public class Program
     {
         IDatabaseWrapper privateDatabaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
         privateDatabaseWrapper.ConnectAndPrepare();
-        var databaseMapper = new DatabaseMapping(privateDatabaseWrapper);
-
         // Creating multiple database wrappers on the same connection should be fine, as they are pooled
         IDatabaseWrapper databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
         IDataProvider dataProvider = new HttpDataProvider(ApiUrl);
-        using var scraper = new Scraper(databaseWrapper, databaseMapper, dataProvider);
+        using var scraper = new Scraper(databaseWrapper, dataProvider);
         scraper.Initialize();
         scraper.Scrape();
     }

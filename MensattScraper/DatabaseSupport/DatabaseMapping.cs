@@ -2,31 +2,33 @@
 
 namespace MensattScraper.DatabaseSupport;
 
-public class DatabaseMapping
+public static class DatabaseMapping
 {
-    private List<Location> _locations;
-    private List<Tag> _tags;
-    private readonly IDatabaseWrapper _databaseWrapper;
+    private static List<Location> _locations;
+    private static List<Tag> _tags;
+    private static readonly IDatabaseWrapper DatabaseWrapper;
 
-    public DatabaseMapping(IDatabaseWrapper databaseWrapper)
+    // I do not really like that we are using multiple potentially blocking calls in the static constructor at the moment
+    // However making this a static class seems to be the best approach currently (to prevent passing an object through
+    // to every IDatabaseWrapper), but it could be replaced by a singleton later on (with dependency injection).
+    static DatabaseMapping()
     {
         _locations = new();
         _tags = new();
-        _databaseWrapper = databaseWrapper;
+        DatabaseWrapper =
+            new NpgsqlDatabaseWrapper("HOST=localhost;Port=8080;Username=mensatt;Password=mensatt;Database=mensatt");
+        DatabaseWrapper.ConnectAndPrepare();
+        RefreshDatabaseMappings();
     }
 
-    public void RefreshDatabaseMappings()
+
+    private static void RefreshDatabaseMappings()
     {
-        // Locking on the current instance only works, because this is essentially a singleton.
-        // This needs to be enforced, otherwise synchronisation errors will occur.
-        lock (this)
-        {
-            _locations = _databaseWrapper.ExecuteSelectIdNameLocationIdCommand();
-            _tags = _databaseWrapper.ExecuteSelectTagAllCommand();
-        }
+        _locations = DatabaseWrapper.ExecuteSelectIdNameLocationIdCommand();
+        _tags = DatabaseWrapper.ExecuteSelectTagAllCommand();
     }
 
     // I believe those methods don't need to be locked, as they are readonly
-    public Guid GetLocationGuidByLocationId(int id) => _locations.Find(location => location.LocationId == id).Id;
-    public bool IsTagValid(string tagKey) => _tags.Any(tag => tag.Key == tagKey);
+    public static Guid GetLocationGuidByLocationId(int id) => _locations.Find(location => location.LocationId == id).Id;
+    public static bool IsTagValid(string tagKey) => _tags.Any(tag => tag.Key == tagKey);
 }

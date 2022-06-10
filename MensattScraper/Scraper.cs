@@ -18,16 +18,14 @@ public class Scraper : IDisposable
     private readonly IDataProvider? _secondaryDataProvider;
 
     private readonly IDatabaseWrapper _databaseWrapper;
-    private readonly DatabaseMapping _databaseMapping;
 
     private Dictionary<DateOnly, List<Tuple<Guid, Guid>>>? _dailyOccurrences;
 
-    public Scraper(IDatabaseWrapper databaseWrapper, DatabaseMapping databaseMapping, IDataProvider primaryDataProvider)
+    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider primaryDataProvider)
     {
         _databaseWrapper = databaseWrapper;
         _primaryDataProvider = primaryDataProvider;
         _xmlSerializer = new(typeof(Speiseplan));
-        _databaseMapping = databaseMapping;
 
         // Multi-lang is only supported for HttpDataProviders for now
         if (_primaryDataProvider is HttpDataProvider httpDataProvider)
@@ -40,7 +38,6 @@ public class Scraper : IDisposable
     {
         _databaseWrapper.ConnectAndPrepare();
         _dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateCommand();
-        _databaseMapping.RefreshDatabaseMappings();
     }
 
     public void Scrape()
@@ -151,7 +148,7 @@ public class Scraper : IDisposable
 
                     var occurrenceUuid =
                         (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(
-                            _databaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId), current, item,
+                            DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId), current, item,
                             dishUuid,
                             occurrenceStatus)!;
 
