@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using MensattScraper.DatabaseSupport;
 
 namespace MensattScraper;
 
@@ -12,15 +13,6 @@ public static class Converter
         Name,
         Tag
     }
-
-    // TODO: Replace with database tags -> DatabaseMapping
-    private static readonly HashSet<string> KnownTags = new()
-    {
-        "1",
-        "2", "4", "5", "7", "8", "9", "10", "11", "12", "13", "30", "S", "R", "G", "L", "W", "F", "V", "Veg", "MSC",
-        "Gf", "CO2", "B", "MV", "Wz", "Ro", "Ge", "Hf", "Kr", "Ei", "Fi", "Er", "So", "Mi", "Man", "Hs", "Wa", "Ka",
-        "Pe", "Pa", "Pi", "Mac", "Sel", "Sen", "Ses", "Su", "Lu", "We"
-    };
 
     public static string ExtractElementFromTitle(string title, TitleElement titleElement)
     {
@@ -56,7 +48,7 @@ public static class Converter
 
             var split = content.Split(',');
 
-            if (split.Any(possibleTag => KnownTags.Contains(possibleTag)))
+            if (split.Any(DatabaseMapping.IsTagValid))
             {
                 if (titleElement == TitleElement.Tag)
                     output += content + ',';
