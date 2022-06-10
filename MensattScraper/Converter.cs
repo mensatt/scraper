@@ -103,7 +103,8 @@ public static class Converter
 
     public static string[] ExtractSingleTagsFromTitle(string title) =>
         ExtractElementFromTitle(title, TitleElement.Tag).Split(',')
-            .Where(x => !string.IsNullOrEmpty(x) && KnownTags.Contains(x)).Select(x => x.Trim()).Distinct().ToArray();
+            .Where(x => !string.IsNullOrEmpty(x) && DatabaseMapping.IsTagValid(x)).Select(x => x.Trim()).Distinct()
+            .ToArray();
 
     public static DateOnly GetDateFromTimestamp(int timestamp)
     {
