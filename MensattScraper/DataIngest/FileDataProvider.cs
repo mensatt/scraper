@@ -1,6 +1,6 @@
 ﻿namespace MensattScraper.DataIngest;
 
-public class FileDataProvider : IDataProvider
+public class FileDataProvider<T> : IDataProvider<T>
 {
     private readonly string _path;
     private bool _fileRetrieved;

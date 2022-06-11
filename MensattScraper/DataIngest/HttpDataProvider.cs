@@ -1,6 +1,6 @@
 ﻿namespace MensattScraper.DataIngest;
 
-public class HttpDataProvider : IDataProvider, IDisposable
+public class HttpDataProvider<T> : IDataProvider<T>, IDisposable
 {
     private readonly HttpClient _client;
 

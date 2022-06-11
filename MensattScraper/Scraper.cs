@@ -12,25 +12,26 @@ public class Scraper : IDisposable
 {
     private readonly XmlSerializer _xmlSerializer;
 
-    private readonly IDataProvider _primaryDataProvider;
+    private readonly IDataProvider<Speiseplan> _primaryDataProvider;
 
     // Used to support another language
-    private readonly IDataProvider? _secondaryDataProvider;
+    private readonly IDataProvider<Speiseplan>? _secondaryDataProvider;
 
     private readonly IDatabaseWrapper _databaseWrapper;
 
     private Dictionary<DateOnly, List<Tuple<Guid, Guid>>>? _dailyOccurrences;
 
-    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider primaryDataProvider)
+    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider)
     {
         _databaseWrapper = databaseWrapper;
         _primaryDataProvider = primaryDataProvider;
         _xmlSerializer = new(typeof(Speiseplan));
 
         // Multi-lang is only supported for HttpDataProviders for now
-        if (_primaryDataProvider is HttpDataProvider httpDataProvider)
+        if (_primaryDataProvider is HttpDataProvider<Speiseplan> httpDataProvider)
         {
-            _secondaryDataProvider = new HttpDataProvider(httpDataProvider.ApiUrl.Replace("xml/", "xml/en/"));
+            _secondaryDataProvider =
+                new HttpDataProvider<Speiseplan>(httpDataProvider.ApiUrl.Replace("xml/", "xml/en/"));
         }
     }
 
@@ -47,23 +48,17 @@ public class Scraper : IDisposable
 
         var timer = new Stopwatch();
 
-        foreach (var primaryRawStream in _primaryDataProvider.RetrieveStream())
+        foreach (var primaryMenu in _primaryDataProvider.RetrieveUnderlying(_xmlSerializer))
         {
             timer.Restart();
 
             // Free up entries that are more than 3 days old
             _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddDays(-3));
 
-            using var primaryDataStream = primaryRawStream;
-
             // Retrieve secondary stream if necessary
             var secondaryRawStream = _secondaryDataProvider?.RetrieveStream();
             using var secondaryDataStream = secondaryRawStream?.First();
 
-            SaveDataStream(_primaryDataProvider, primaryDataStream);
-            SaveDataStream(_secondaryDataProvider, secondaryDataStream);
-
-            var primaryMenu = (Speiseplan?) _xmlSerializer.Deserialize(primaryDataStream);
             var secondaryMenu = secondaryDataStream != null
                 ? (Speiseplan?) _xmlSerializer.Deserialize(secondaryDataStream)
                 : null;
@@ -207,19 +202,6 @@ public class Scraper : IDisposable
 
             Thread.Sleep((int) _primaryDataProvider.GetDataDelayInSeconds * 1000);
         }
-    }
-
-    private static void SaveDataStream(IDataProvider? dataProvider, Stream? stream)
-    {
-        if (dataProvider is null || stream is null)
-            return;
-        // Only save data coming from the network, as it may not be readily available
-        if (dataProvider is not HttpDataProvider) return;
-        using var outputFile =
-            File.Create(
-                $"content{Path.DirectorySeparatorChar}{DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss.fff")}.xml");
-        stream.CopyTo(outputFile);
-        stream.Position = 0;
     }
 
     private Guid InsertDishIfNotExists(string primaryDishTitle, string secondaryDishTitle)
