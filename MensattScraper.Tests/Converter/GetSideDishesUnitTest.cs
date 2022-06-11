@@ -24,7 +24,7 @@ public class GetSideDishesUnitTest
 
     [Theory]
     [InlineData("A,,B,,C,,D", new[] {"A", "B", "C", "D"})]
-    [InlineData(",,,,,,,,,,e,,,,,,,,", new[] {"e"})]
+    [InlineData(",,,,,,,,,,e,,,,,,,,", new[] {"E"})]
     [InlineData(",,,,,,,,,,,,,,,,", new string[] { })]
     public void AdditionalCommasInSideDishes(string sideDish, string[] expected)
     {

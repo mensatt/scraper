@@ -17,7 +17,9 @@ public static class Converter
     public static string ExtractElementFromTitle(string title, TitleElement titleElement)
     {
         if (string.IsNullOrEmpty(title) || !title.Contains('('))
-            return titleElement == TitleElement.Name ? title : string.Empty;
+            return titleElement == TitleElement.Name
+                ? title.Trim(' ', ',').RemoveMultipleWhiteSpaces().FirstCharUpper()
+                : string.Empty;
 
         if (title.Count(x => x == '(') != title.Count(x => x == ')'))
         {

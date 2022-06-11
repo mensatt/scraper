@@ -3,23 +3,6 @@
 public class ExtractElementFromTitleUnitTest
 {
     [Theory]
-    [InlineData(10, 32)]
-    [InlineData(128, 256)]
-    [InlineData(256, 128)]
-    [InlineData(3, 32)]
-    public void RandomTitlesWithoutParentheses(uint titleLength, uint repeats)
-    {
-        for (uint i = 0; i < repeats; i++)
-        {
-            var randomString = RandomUtil.GenerateRandomString(titleLength);
-
-            Assert.Equal(randomString,
-                MensattScraper.Converter.ExtractElementFromTitle(randomString,
-                    MensattScraper.Converter.TitleElement.Name));
-        }
-    }
-
-    [Theory]
     [InlineData("This is a sample title", "This is a sample title")]
     [InlineData("", "")]
     [InlineData("Pizza🍕👍", "Pizza🍕👍")]
@@ -76,6 +59,18 @@ public class ExtractElementFromTitleUnitTest
     [InlineData("Putenschnitzel (Wz) und Remouladensoße (4,5,Wz,Ei,So,Mi)und Chips (Wz)",
         "Putenschnitzel und Remouladensoße und Chips")]
     public void TitleWithTagParentheses(string title, string expected)
+    {
+        var result =
+            MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
+
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("a", "A")]
+    [InlineData("pommes Frites", "Pommes Frites")]
+    [InlineData("1Test", "1Test")]
+    public void TitleWithLowercaseFirstChar(string title, string expected)
     {
         var result =
             MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
