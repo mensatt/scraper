@@ -10,6 +10,12 @@ public class FileDataProvider<T> : IDataProvider<T>
         _path = path;
     }
 
+    public string? CopyLocation
+    {
+        get => null;
+        set => throw new NotImplementedException("Files cannot be saved currently");
+    }
+
     // Files should be read as fast as possible
     public uint GetDataDelayInSeconds => 0;
 

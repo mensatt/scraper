@@ -13,6 +13,8 @@ public class HttpDataProvider<T> : IDataProvider<T>, IDisposable
         GetDataDelayInSeconds = delay;
     }
 
+
+    public string? CopyLocation => "content";
     public uint GetDataDelayInSeconds { get; }
 
     public IEnumerable<Stream> RetrieveStream()
