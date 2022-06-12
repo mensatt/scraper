@@ -164,14 +164,14 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _commandBatch.BatchCommands.Add(command);
     }
 
-    public Guid? ExecuteSelectDishByGermanNameCommand(string name)
+    public Guid? ExecuteSelectDishByGermanNameCommand(string? name)
     {
         _selectDishByGermanNameCommand.Parameters["name_de"].Value =
             Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name);
         return (Guid?) _selectDishByGermanNameCommand.ExecuteScalar();
     }
 
-    public Guid? ExecuteSelectDishAliasByNameCommand(string name)
+    public Guid? ExecuteSelectDishAliasByNameCommand(string? name)
     {
         _selectDishByAliasNameCommand.Parameters["normalized_alias_name"].Value =
             Converter.SanitizeString(Converter.ExtractElementFromTitle(name, Converter.TitleElement.Name));
@@ -217,12 +217,12 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return tagList;
     }
 
-    public Guid? ExecuteInsertDishCommand(string primaryTitle, string? secondaryTitle)
+    public Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle)
     {
         _insertDishCommand.Parameters["name_de"].Value =
             Converter.ExtractElementFromTitle(primaryTitle, Converter.TitleElement.Name);
-        _insertDishCommand.Parameters["name_en"].Value =
-            Converter.ExtractElementFromTitle(secondaryTitle ?? string.Empty, Converter.TitleElement.Name);
+        SetParameterToValueOrNull(_insertDishCommand.Parameters["name_en"],
+            Converter.ExtractElementFromTitle(secondaryTitle, Converter.TitleElement.Name));
         return (Guid?) _insertDishCommand.ExecuteScalar();
     }
 
@@ -259,7 +259,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return (Guid?) _insertOccurrenceCommand.ExecuteScalar();
     }
 
-    public Guid? ExecuteInsertDishAliasCommand(string dishName, Guid dish)
+    public Guid? ExecuteInsertDishAliasCommand(string? dishName, Guid dish)
     {
         var extractedDishName = Converter.ExtractElementFromTitle(dishName, Converter.TitleElement.Name);
         _insertDishAliasCommand.Parameters["alias_name"].Value = extractedDishName;
@@ -281,6 +281,10 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _deleteOccurrenceCommand.ExecuteNonQuery();
     }
 
+    private static void SetParameterToValueOrNull(IDataParameter param, string? value)
+    {
+        param.Value = value is not null ? value : DBNull.Value;
+    }
 
     private static void SetParameterToValueOrNull(IDataParameter param, int? value)
     {

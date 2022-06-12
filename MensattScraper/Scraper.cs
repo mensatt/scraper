@@ -56,12 +56,7 @@ public class Scraper : IDisposable
             _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddDays(-3));
 
             // Retrieve secondary stream if necessary
-            var secondaryRawStream = _secondaryDataProvider?.RetrieveStream();
-            using var secondaryDataStream = secondaryRawStream?.First();
-
-            var secondaryMenu = secondaryDataStream != null
-                ? (Speiseplan?) _xmlSerializer.Deserialize(secondaryDataStream)
-                : null;
+            var secondaryMenu = _secondaryDataProvider?.RetrieveUnderlying(_xmlSerializer).First();
 
             if (primaryMenu is null)
             {
@@ -204,7 +199,7 @@ public class Scraper : IDisposable
         }
     }
 
-    private Guid InsertDishIfNotExists(string primaryDishTitle, string secondaryDishTitle)
+    private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
     {
         return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle) ??
                        _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,

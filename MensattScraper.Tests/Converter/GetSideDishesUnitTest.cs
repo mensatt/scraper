@@ -15,7 +15,7 @@ public class GetSideDishesUnitTest
     [InlineData("A", new[] {"A"})]
     [InlineData("Wahlbeilagen: A,B,C,D", new[] {"A", "B", "C", "D"})]
     [InlineData("Wahlbeilagen: 🥺", new[] {"🥺"})]
-    public void ValidSideDishes(string sideDish, string[] expected)
+    public void ValidSideDishes(string? sideDish, string?[] expected)
     {
         var result = MensattScraper.Converter.GetSideDishes(sideDish);
 
@@ -26,7 +26,7 @@ public class GetSideDishesUnitTest
     [InlineData("A,,B,,C,,D", new[] {"A", "B", "C", "D"})]
     [InlineData(",,,,,,,,,,e,,,,,,,,", new[] {"E"})]
     [InlineData(",,,,,,,,,,,,,,,,", new string[] { })]
-    public void AdditionalCommasInSideDishes(string sideDish, string[] expected)
+    public void AdditionalCommasInSideDishes(string? sideDish, string?[] expected)
     {
         var result = MensattScraper.Converter.GetSideDishes(sideDish);
 

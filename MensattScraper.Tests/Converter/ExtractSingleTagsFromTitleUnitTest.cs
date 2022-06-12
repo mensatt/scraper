@@ -7,7 +7,7 @@ public class ExtractSingleTagsFromTitleUnitTest
     [InlineData("Pizza mit Oliven und 👍")]
     [InlineData("(Dies, sind, alles, keine, Tags)")]
     [InlineData("(,,,,)")]
-    public void TitleWithoutTags(string title)
+    public void TitleWithoutTags(string? title)
     {
         var result = MensattScraper.Converter.ExtractSingleTagsFromTitle(title);
 
@@ -17,7 +17,7 @@ public class ExtractSingleTagsFromTitleUnitTest
     [Theory]
     [InlineData("(Wz,Wz,Wz,Wz,Wz,Wz,Wz)", new[] {"Wz"})]
     [InlineData("(1,2,4,4,2,1)", new[] {"1", "2", "4"})]
-    public void TitleWithDuplicatesTags(string title, string[] expected)
+    public void TitleWithDuplicatesTags(string? title, string[] expected)
     {
         var result = MensattScraper.Converter.ExtractSingleTagsFromTitle(title);
 

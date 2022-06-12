@@ -14,8 +14,11 @@ public static class Converter
         Tag
     }
 
-    public static string ExtractElementFromTitle(string title, TitleElement titleElement)
+    public static string ExtractElementFromTitle(string? title, TitleElement titleElement)
     {
+        if (title is null)
+            return null;
+
         if (string.IsNullOrEmpty(title) || !title.Contains('('))
             return titleElement == TitleElement.Name
                 ? title.Trim(' ', ',').RemoveMultipleWhiteSpaces().FirstCharUpper()
@@ -103,7 +106,7 @@ public static class Converter
         return char.ToUpper(input[0]) + input[1..];
     }
 
-    public static string[] ExtractSingleTagsFromTitle(string title) =>
+    public static string[] ExtractSingleTagsFromTitle(string? title) =>
         ExtractElementFromTitle(title, TitleElement.Tag).Split(',')
             .Where(x => !string.IsNullOrEmpty(x) && DatabaseMapping.IsTagValid(x)).Select(x => x.Trim()).Distinct()
             .ToArray();
@@ -125,7 +128,7 @@ public static class Converter
         return null;
     }
 
-    public static string[] GetSideDishes(string sideDishes) => ExtractElementFromTitle(sideDishes, TitleElement.Name)
+    public static string?[] GetSideDishes(string? sideDishes) => ExtractElementFromTitle(sideDishes, TitleElement.Name)
         .Replace("Wahlbeilagen:", string.Empty).Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x))
         .ToArray();
 }

@@ -6,7 +6,7 @@ public class ExtractElementFromTitleUnitTest
     [InlineData("This is a sample title", "This is a sample title")]
     [InlineData("", "")]
     [InlineData("Pizza🍕👍", "Pizza🍕👍")]
-    public void TitleWithoutParentheses(string title, string expected)
+    public void TitleWithoutParentheses(string? title, string expected)
     {
         var result =
             MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
@@ -23,7 +23,7 @@ public class ExtractElementFromTitleUnitTest
     [InlineData("This (is) a (sentence)", "This (is) a (sentence)")]
     [InlineData("Pizza Mediterrane (Oliven, Peperoni, Paprika, Zwiebeln)",
         "Pizza Mediterrane (Oliven, Peperoni, Paprika, Zwiebeln)")]
-    public void TitleWithNonTagParentheses(string title, string expected)
+    public void TitleWithNonTagParentheses(string? title, string expected)
     {
         var result =
             MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
@@ -39,7 +39,7 @@ public class ExtractElementFromTitleUnitTest
     [InlineData("M)ensa(tt ))👍")]
     [InlineData("((((((((((((((((())()(")]
     [InlineData(")))))))))))))()())))")]
-    public void TitleWithNonTagMismatchedParentheses(string title)
+    public void TitleWithNonTagMismatchedParentheses(string? title)
     {
         var result =
             MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
@@ -58,7 +58,7 @@ public class ExtractElementFromTitleUnitTest
     [InlineData("Vegane Currywurst mit Soße und Pommes frites(Wz)", "Vegane Currywurst mit Soße und Pommes frites")]
     [InlineData("Putenschnitzel (Wz) und Remouladensoße (4,5,Wz,Ei,So,Mi)und Chips (Wz)",
         "Putenschnitzel und Remouladensoße und Chips")]
-    public void TitleWithTagParentheses(string title, string expected)
+    public void TitleWithTagParentheses(string? title, string expected)
     {
         var result =
             MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
@@ -70,7 +70,7 @@ public class ExtractElementFromTitleUnitTest
     [InlineData("a", "A")]
     [InlineData("pommes Frites", "Pommes Frites")]
     [InlineData("1Test", "1Test")]
-    public void TitleWithLowercaseFirstChar(string title, string expected)
+    public void TitleWithLowercaseFirstChar(string? title, string expected)
     {
         var result =
             MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Name);
