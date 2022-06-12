@@ -155,9 +155,9 @@ public class Scraper : IDisposable
                     var secondarySideDishIndex = 0;
                     foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
                     {
-                        var secondarySideDishTitle = "UNKNOWN";
+                        string? secondarySideDishTitle = null;
                         if (secondaryMenu?.Tags?[secondaryDayTagIndex]
-                                .Items?[secondaryItemIndex].Beilagen.Length != 0)
+                                .Items?[secondaryItemIndex].Beilagen?.Length != 0)
                         {
                             secondarySideDishTitle =
                                 Converter.GetSideDishes(secondaryMenu?.Tags?[secondaryDayTagIndex]
