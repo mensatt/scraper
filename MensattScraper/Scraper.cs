@@ -5,6 +5,7 @@ using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
 using MensattScraper.Util;
+using Microsoft.Extensions.Logging;
 
 namespace MensattScraper;
 
@@ -21,11 +22,17 @@ public class Scraper : IDisposable
 
     private Dictionary<DateOnly, List<Tuple<Guid, Guid>>>? _dailyOccurrences;
 
+    private readonly CancellationTokenSource _cancellationTokenSource;
+    private readonly CancellationToken _cancellationToken;
+
     public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider)
     {
         _databaseWrapper = databaseWrapper;
         _primaryDataProvider = primaryDataProvider;
         _xmlSerializer = new(typeof(Speiseplan));
+        _cancellationTokenSource = new();
+        _cancellationToken = _cancellationTokenSource.Token;
+        _cancellationToken.Register(() => SharedLogger.LogInformation("Cancelling sleep token"));
 
         // Multi-lang is only supported for HttpDataProviders for now
         if (_primaryDataProvider is HttpDataProvider<Speiseplan> httpDataProvider)
@@ -50,6 +57,7 @@ public class Scraper : IDisposable
 
         foreach (var primaryMenu in _primaryDataProvider.RetrieveUnderlying(_xmlSerializer))
         {
+            SharedLogger.LogInformation("Processing new menu");
             timer.Restart();
 
             // Free up entries that are more than 3 days old
@@ -60,14 +68,14 @@ public class Scraper : IDisposable
 
             if (primaryMenu is null)
             {
-                Console.Error.WriteLine("Could not deserialize menu");
+                SharedLogger.LogError("Could not deserialize menu");
                 continue;
             }
 
             // Happens on holidays, where the xml is provided but empty
             if (primaryMenu.Tags is null)
             {
-                Console.Error.WriteLine("Menu DayTag was null");
+                SharedLogger.LogError("Menu DayTag was null");
                 continue;
             }
 
@@ -76,7 +84,7 @@ public class Scraper : IDisposable
             {
                 if (current.Items is null)
                 {
-                    Console.Error.WriteLine("Day contained no items");
+                    SharedLogger.LogError("Day contained no items");
                     continue;
                 }
 
@@ -105,7 +113,7 @@ public class Scraper : IDisposable
                 {
                     if (item.Title is null)
                     {
-                        Console.Error.WriteLine("Item did not contain title");
+                        SharedLogger.LogError("Item did not contain title");
                         continue;
                     }
 
@@ -175,13 +183,13 @@ public class Scraper : IDisposable
 
 
                 // Delete all dishes, that were removed on a day which is more than two days in the future
-
-
                 foreach (var (dishId, occurrenceId) in _dailyOccurrences[currentDay])
                 {
                     // If this dish does not exist in the current XML, delete it
                     if (!dailyDishes.Contains(dishId))
                     {
+                        SharedLogger.LogInformation(
+                            $"Noticed dish removal of {dishId}, isFarInTheFuture={isInFarFuture}");
                         if (isInFarFuture)
                             _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(occurrenceId);
                         else
@@ -193,14 +201,15 @@ public class Scraper : IDisposable
                 secondaryDayTagIndex++;
             }
 
-            Console.WriteLine($"Scraping took {timer.ElapsedMilliseconds}ms");
+            SharedLogger.LogInformation($"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
 
-            Thread.Sleep((int) _primaryDataProvider.GetDataDelayInSeconds * 1000);
+            _cancellationToken.WaitHandle.WaitOne(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));
         }
     }
 
     private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
     {
+        SharedLogger.LogInformation($"Inserting new dish, primary={primaryDishTitle}; secondary={secondaryDishTitle}");
         return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle) ??
                        _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
                            (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
@@ -209,6 +218,8 @@ public class Scraper : IDisposable
 
     public void Dispose()
     {
+        _cancellationTokenSource.Cancel();
+        SharedLogger.LogInformation("Disposing scraper");
         if (_primaryDataProvider is IDisposable disposableDataProvider)
             disposableDataProvider.Dispose();
 

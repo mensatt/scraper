@@ -1,4 +1,5 @@
 ﻿using MensattScraper.DestinationCompat;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace MensattScraper.DatabaseSupport;
@@ -19,7 +20,7 @@ public static class DatabaseMapping
 
         try
         {
-            DatabaseWrapper = new NpgsqlDatabaseWrapper(Configuration.DbConnection);
+            DatabaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
             DatabaseWrapper.ConnectAndPrepare();
             RefreshDatabaseMappings();
         }
@@ -46,6 +47,7 @@ public static class DatabaseMapping
 
     private static void RefreshDatabaseMappings()
     {
+        SharedLogger.LogInformation("Refreshing database mappings");
         _locations = DatabaseWrapper.ExecuteSelectIdNameLocationIdCommand();
         _tags = DatabaseWrapper.ExecuteSelectTagAllCommand();
     }

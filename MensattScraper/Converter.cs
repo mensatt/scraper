@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using MensattScraper.DatabaseSupport;
+using Microsoft.Extensions.Logging;
 
 namespace MensattScraper;
 
@@ -26,7 +27,7 @@ public static class Converter
 
         if (title.Count(x => x == '(') != title.Count(x => x == ')'))
         {
-            Console.Error.WriteLine("Mismatched parentheses, Mode: " + titleElement + ", Title:`" + title + "`");
+            SharedLogger.LogError("Mismatched parentheses, Mode: " + titleElement + ", Title:`" + title + "`");
             return string.Empty;
         }
 
@@ -75,10 +76,10 @@ public static class Converter
         Regex.Replace(input.ToLowerInvariant().RemoveDiacritics(),
             @"[^a-z0-9 ]", string.Empty).RemoveIrrelevantWords().RemoveMultipleWhiteSpaces();
 
-    private static readonly HashSet<string> _irrelevantWords = new() {"mit", "und"};
+    private static readonly HashSet<string> IrrelevantWords = new() {"mit", "und"};
 
     public static string RemoveIrrelevantWords(this string text) =>
-        _irrelevantWords.Aggregate(text, (current, word) =>
+        IrrelevantWords.Aggregate(text, (current, word) =>
             current.Replace(word, string.Empty));
 
     public static string RemoveDiacritics(this string text)

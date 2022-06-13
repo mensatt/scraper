@@ -2,6 +2,7 @@ using System.Data;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
 using MensattScraper.Util;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -123,6 +124,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public NpgsqlDatabaseWrapper(string connectionString)
     {
+        SharedLogger.LogInformation($"Creating DatabaseWrapper with connection string: {connectionString}");
         _databaseConnection = new(connectionString);
 
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
@@ -293,6 +295,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public void Dispose()
     {
+        SharedLogger.LogInformation($"Disposing DatabaseWrapper {ToString()}");
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
                      typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Dispose();
