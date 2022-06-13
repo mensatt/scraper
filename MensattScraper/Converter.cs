@@ -73,7 +73,13 @@ public static class Converter
 
     public static string SanitizeString(string input) =>
         Regex.Replace(input.ToLowerInvariant().RemoveDiacritics(),
-            @"[^a-z0-9 ]", string.Empty).RemoveMultipleWhiteSpaces();
+            @"[^a-z0-9 ]", string.Empty).RemoveIrrelevantWords().RemoveMultipleWhiteSpaces();
+
+    private static readonly HashSet<string> _irrelevantWords = new() {"mit", "und"};
+
+    public static string RemoveIrrelevantWords(this string text) =>
+        _irrelevantWords.Aggregate(text, (current, word) =>
+            current.Replace(word, string.Empty));
 
     public static string RemoveDiacritics(this string text)
     {

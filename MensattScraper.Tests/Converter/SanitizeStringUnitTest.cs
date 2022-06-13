@@ -16,8 +16,8 @@ public class SanitizeStringUnitTest
     [Theory]
     [InlineData("Pommes Frites", "pommes frites")]
     [InlineData("pomm's frit's", "pomms frits")]
-    [InlineData("Döner mit Dän", "doner mit dan")]
-    [InlineData("Pizza mit Oliven,Tomaten und einem Kilo Salz", "pizza mit oliventomaten und einem kilo salz")]
+    [InlineData("Döner mit Dän", "doner dan")]
+    [InlineData("Pizza mit Oliven,Tomaten und einem Kilo Salz", "pizza oliventomaten einem kilo salz")]
     public void StandardDishTitles(string input, string expected)
     {
         var result = MensattScraper.Converter.SanitizeString(input);
