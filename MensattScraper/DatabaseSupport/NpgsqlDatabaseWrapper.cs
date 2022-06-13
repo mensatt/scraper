@@ -283,7 +283,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     private static void SetParameterToValueOrNull(IDataParameter param, string? value)
     {
-        param.Value = value is not null ? value : DBNull.Value;
+        param.Value = value is null ? DBNull.Value : value.Trim().Length == 0 ? DBNull.Value : value;
     }
 
     private static void SetParameterToValueOrNull(IDataParameter param, int? value)
