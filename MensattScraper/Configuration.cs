@@ -5,8 +5,10 @@ namespace MensattScraper;
 
 internal static class Configuration
 {
-    internal const string ApiUrl = "https://www.max-manager.de/daten-extern/sw-erlangen-nuernberg/xml/mensa-sued.xml";
-    internal const string DbConnection = "HOST=localhost;Port=8080;Username=mensatt;Password=mensatt;Database=mensatt";
+    internal static readonly string ApiUrl = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_API_URL") ??
+                                             throw new ArgumentException("Api url not set");
+    internal static readonly string DbConnection = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_DB") ??
+                                                   throw new ArgumentException("Database string not set");
 
     internal static readonly ILogger SharedLogger = LoggerFactory.Create(builder =>
     {
@@ -16,4 +18,6 @@ internal static class Configuration
             options.TimestampFormat = "hh:mm:ss ";
         });
     }).CreateLogger("Scraper");
+
+
 }
