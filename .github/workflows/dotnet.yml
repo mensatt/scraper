@@ -10,7 +10,9 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    env:
+      MENSATT_SCRAPER_DB: unset
+      MENSATT_SCRAPER_API_URL: unset
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET
