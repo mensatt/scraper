@@ -8,8 +8,10 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     env:
       MENSATT_SCRAPER_DB: HOST=localhost;Port=8080;Username=unset;Password=unset;Database=unset
       MENSATT_SCRAPER_API_URL: unset
