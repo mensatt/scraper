@@ -11,7 +11,7 @@ internal static class DatabaseConstants
 
     internal const string SelectLocationIdNameLocationId = "SELECT id, name, external_id FROM location";
 
-    internal const string SelectTagAll = "SELECT * FROM tag";
+    internal const string SelectTagAll = "SELECT key FROM tag";
 
     internal const string InsertDishWithGermanNameSql =
         "INSERT INTO dish (name_de, name_en) VALUES (@name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";

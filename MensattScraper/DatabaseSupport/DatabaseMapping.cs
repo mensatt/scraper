@@ -7,7 +7,7 @@ namespace MensattScraper.DatabaseSupport;
 public static class DatabaseMapping
 {
     private static List<Location> _locations;
-    private static List<Tag> _tags;
+    private static List<string> _tags;
     private static readonly IDatabaseWrapper? DatabaseWrapper;
 
     // I do not really like that we are using multiple potentially blocking calls in the static constructor at the moment
@@ -28,7 +28,7 @@ public static class DatabaseMapping
         {
             // This *should* only happen in unit tests
             DatabaseWrapper = null;
-            List<string> tagKeys = new()
+            _tags = new()
             {
                 "1",
                 "2", "4", "5", "7", "8", "9", "10", "11", "12", "13", "30", "S", "R", "G", "L", "W", "F", "V", "Veg",
@@ -37,10 +37,6 @@ public static class DatabaseMapping
                 "Ka",
                 "Pe", "Pa", "Pi", "Mac", "Sel", "Sen", "Ses", "Su", "Lu", "We"
             };
-            foreach (var tagKey in tagKeys)
-            {
-                _tags.Add(new(tagKey, string.Empty, string.Empty, null, Priority.UNSET, false));
-            }
         }
     }
 
@@ -54,5 +50,5 @@ public static class DatabaseMapping
 
     // I believe those methods don't need to be locked, as they are readonly
     public static Guid GetLocationGuidByLocationId(int id) => _locations.Find(location => location.LocationId == id).Id;
-    public static bool IsTagValid(string tagKey) => _tags.Any(tag => tag.Key == tagKey);
+    public static bool IsTagValid(string tagKey) => _tags.Any(tag => tag == tagKey);
 }
