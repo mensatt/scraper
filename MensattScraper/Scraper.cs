@@ -209,7 +209,6 @@ public class Scraper : IDisposable
 
     private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
     {
-        SharedLogger.LogInformation($"Inserting new dish, primary={primaryDishTitle}; secondary={secondaryDishTitle}");
         return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle) ??
                        _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
                            (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??

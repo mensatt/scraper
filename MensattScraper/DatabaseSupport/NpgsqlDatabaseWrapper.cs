@@ -260,6 +260,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     public Guid? ExecuteInsertDishAliasCommand(string? dishName, Guid dish)
     {
         var extractedDishName = Converter.ExtractElementFromTitle(dishName, Converter.TitleElement.Name);
+        SharedLogger.LogInformation($"Inserting new dish alias, extractedDishName={extractedDishName}");
         _insertDishAliasCommand.Parameters["alias_name"].Value = extractedDishName;
         _insertDishAliasCommand.Parameters["normalized_alias_name"].Value = Converter.SanitizeString(extractedDishName);
         _insertDishAliasCommand.Parameters["dish"].Value = dish;
