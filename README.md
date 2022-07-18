@@ -1,5 +1,7 @@
 # Mensatt Scraper
 
+![Build badge](https://github.com/mensatt/scraper/actions/workflows/dotnet.yml/badge.svg)
+
 Scraping utility to supply [mensatt](https://mensatt.de) with fresh dishes 🍕
 
 ## Solution structure
