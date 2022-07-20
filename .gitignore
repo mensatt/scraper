@@ -5,6 +5,7 @@ riderModule.iml
 /_ReSharper.Caches/
 .idea/
 MensattScraper/content/
+MensattScraper/content_en/
 MensattScraper/*.xml
 MensattScraper.sln.DotSettings.user
 .DS_store

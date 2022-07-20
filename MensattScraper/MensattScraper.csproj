@@ -16,14 +16,17 @@
 
     <ItemGroup>
       <Compile Remove="content\**" />
+      <Compile Remove="content_en\**" />
     </ItemGroup>
 
     <ItemGroup>
       <EmbeddedResource Remove="content\**" />
+      <EmbeddedResource Remove="content_en\**" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="content\**" />
+      <None Remove="content_en\**" />
     </ItemGroup>
 
 </Project>

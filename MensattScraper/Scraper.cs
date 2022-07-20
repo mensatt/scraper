@@ -16,7 +16,7 @@ public class Scraper : IDisposable
     private readonly IDataProvider<Speiseplan> _primaryDataProvider;
 
     // Used to support another language
-    private readonly IDataProvider<Speiseplan>? _secondaryDataProvider;
+    private readonly IDataProvider<Speiseplan> _secondaryDataProvider;
 
     private readonly IDatabaseWrapper _databaseWrapper;
 
@@ -58,40 +58,71 @@ public class Scraper : IDisposable
 
         var timer = new Stopwatch();
 
-        foreach (var primaryMenu in _primaryDataProvider.RetrieveUnderlying(_xmlSerializer))
+
+        var zippedMenus = _primaryDataProvider.RetrieveUnderlying(_xmlSerializer)
+            .Zip(_secondaryDataProvider.RetrieveUnderlying(_xmlSerializer));
+        foreach (var (primaryMenu, secondaryMenu) in zippedMenus)
         {
-            SharedLogger.LogInformation("Processing new menu");
+            SharedLogger.LogInformation("Processing new menus");
             timer.Restart();
 
             // Free up entries that are more than 3 days old
             _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddDays(-3));
 
-            // Retrieve secondary stream if necessary
-            var secondaryMenu = _secondaryDataProvider?.RetrieveUnderlying(_xmlSerializer).First();
-
-            if (primaryMenu is null)
+            // TODO: Evaluate the error handling should be extracted into it's own method
+            if (primaryMenu is null || secondaryMenu is null)
             {
-                SharedLogger.LogError("Could not deserialize menu");
+                SharedLogger.LogError(
+                    $"primaryMenu is null -> {primaryMenu == null}," +
+                    $" secondaryMenu is null -> {secondaryMenu == null}");
                 continue;
             }
 
             // Happens on holidays, where the xml is provided but empty
-            if (primaryMenu.Tags is null)
+            if (primaryMenu.Tags is null || secondaryMenu.Tags is null)
             {
-                SharedLogger.LogError("Menu DayTag was null");
+                SharedLogger.LogError(
+                    $"Menu days were empty, is primaryMenu.Tags null -> {primaryMenu.Tags == null}," +
+                    $" is secondaryMenu.Tags null -> {secondaryMenu.Tags == null}");
                 continue;
             }
 
-            uint secondaryDayTagIndex = 0;
-            foreach (var current in primaryMenu.Tags)
+            if (primaryMenu.Tags.Length != secondaryMenu.Tags.Length)
             {
-                if (current.Items is null)
+                SharedLogger.LogError(
+                    "Mismatch between primary and secondary menu, primary length is " +
+                    $"{primaryMenu.Tags.Length} while secondary length is {secondaryMenu.Tags.Length}");
+                continue;
+            }
+
+            var zippedDays = primaryMenu.Tags.Zip(secondaryMenu.Tags);
+            foreach (var (primaryDay, secondaryDay) in zippedDays)
+            {
+                if (primaryDay.Items is null || secondaryDay.Items is null)
                 {
-                    SharedLogger.LogError("Day contained no items");
+                    SharedLogger.LogError(
+                        $"primaryDay.Items is null -> {primaryDay.Items is null}," +
+                        $" secondary.Items is null -> {secondaryDay.Items is null}");
                     continue;
                 }
 
-                var currentDay = Converter.GetDateFromTimestamp(current.Timestamp);
+                if (primaryDay.Items.Length != secondaryDay.Items.Length)
+                {
+                    SharedLogger.LogError(
+                        "Mismatch between primary and secondary menu items length, primary length is " +
+                        $"{primaryDay.Items.Length} while secondary length is {secondaryDay.Items.Length}");
+                    continue;
+                }
+
+                if (primaryDay.Timestamp != secondaryDay.Timestamp)
+                {
+                    SharedLogger.LogError(
+                        $"Timestamp mismatch, {nameof(primaryDay.Timestamp)}={primaryDay.Timestamp} " +
+                        $"and {nameof(secondaryDay.Timestamp)}={secondaryDay.Timestamp}");
+                    continue;
+                }
+
+                var currentDay = Converter.GetDateFromTimestamp(primaryDay.Timestamp);
                 var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
                 bool firstPullOfTheDay;
                 if (!_dailyOccurrences.ContainsKey(currentDay))
@@ -111,26 +142,25 @@ public class Scraper : IDisposable
 
                 _databaseWrapper.ResetBatch();
 
-                uint secondaryItemIndex = 0;
-                foreach (var item in current.Items)
+                var zippedItems = primaryDay.Items.Zip(secondaryDay.Items);
+                foreach (var (primaryItem, secondaryItem) in zippedItems)
                 {
-                    if (item.Title is null)
+                    if (primaryItem.Title is null)
                     {
-                        SharedLogger.LogError("Item did not contain title");
+                        SharedLogger.LogError("Primary dish title is null");
                         continue;
                     }
+
+                    // TODO: Check item consistency, override ==
 
                     // This gets shown as a placeholder, before the different kinds of pizza are known
-                    if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
+                    if (primaryItem.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
                     {
-                        SharedLogger.LogWarning($"Noticed placeholder item, skipping {item.Title}");
+                        SharedLogger.LogWarning($"Noticed placeholder item, skipping {primaryItem.Title}");
                         continue;
                     }
 
-                    var secondaryTitle = secondaryMenu?.Tags?[secondaryDayTagIndex].Items?[secondaryItemIndex].Title;
-                    secondaryItemIndex++;
-
-                    var dishUuid = InsertDishIfNotExists(item.Title, secondaryTitle);
+                    var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
                     dailyDishes.Add(dishUuid);
 
@@ -152,36 +182,39 @@ public class Scraper : IDisposable
 
                     var occurrenceUuid =
                         (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(
-                            DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId), current, item,
+                            DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId), primaryDay,
+                            primaryItem,
                             dishUuid,
                             occurrenceStatus)!;
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
-                    foreach (var tag in Converter.ExtractSingleTagsFromTitle(item.Title))
+                    foreach (var tag in Converter.ExtractSingleTagsFromTitle(primaryItem.Title))
                     {
                         _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
                     }
 
-                    if (item.Beilagen is null)
+                    if (primaryItem.Beilagen is null)
                         continue;
 
-                    var secondarySideDishIndex = 0;
-                    foreach (var sideDish in Converter.GetSideDishes(item.Beilagen))
+                    if (secondaryItem.Beilagen is null)
                     {
-                        string? secondarySideDishTitle = null;
-                        if (secondaryMenu?.Tags?[secondaryDayTagIndex]
-                                .Items?[secondaryItemIndex].Beilagen?.Length != 0)
-                        {
-                            secondarySideDishTitle =
-                                Converter.GetSideDishes(secondaryMenu?.Tags?[secondaryDayTagIndex]
-                                    .Items?[secondaryItemIndex].Beilagen ?? string.Empty)[secondarySideDishIndex];
-                        }
+                        SharedLogger.LogWarning("Secondary item side dish is null, but primary wasn't");
+                        Debugger.Break();
+                    }
 
-                        var sideDishUuid = InsertDishIfNotExists(sideDish, secondarySideDishTitle);
+                    if (primaryItem.Beilagen.Length != secondaryItem.Beilagen.Length)
+                    {
+                        SharedLogger.LogWarning("Side dish count mismatch");
+                        Debugger.Break();
+                    }
 
+                    var zippedSideDishes = Converter.GetSideDishes(primaryItem.Beilagen)
+                        .Zip(Converter.GetSideDishes(secondaryItem.Beilagen));
+                    foreach (var (primarySideDish, secondarySideDish) in zippedSideDishes)
+                    {
+                        var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish);
                         _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
-                        secondarySideDishIndex++;
                     }
                 }
 
@@ -202,8 +235,6 @@ public class Scraper : IDisposable
                                 ReviewStatus.PENDING_DELETION, occurrenceId);
                     }
                 }
-
-                secondaryDayTagIndex++;
             }
 
             SharedLogger.LogInformation($"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
@@ -212,6 +243,7 @@ public class Scraper : IDisposable
         }
     }
 
+    // TODO: Log all relevant data to prevent deleted dish_alias occurrence combinations
     private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
     {
         return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle) ??

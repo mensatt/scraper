@@ -224,6 +224,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return (Guid?) _insertDishCommand.ExecuteScalar();
     }
 
+    // TODO: Use timestamp directly, instead of passing DayTag
     public Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
         ReviewStatus status)
     {
