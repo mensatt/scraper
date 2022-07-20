@@ -34,12 +34,15 @@ public class Scraper : IDisposable
         _cancellationToken = _cancellationTokenSource.Token;
         _cancellationToken.Register(() => SharedLogger.LogInformation("Cancelling sleep token"));
 
-        // Multi-lang is only supported for HttpDataProviders for now
-        if (_primaryDataProvider is HttpDataProvider<Speiseplan> httpDataProvider)
+        _secondaryDataProvider = _primaryDataProvider switch
         {
-            _secondaryDataProvider =
-                new HttpDataProvider<Speiseplan>(httpDataProvider.ApiUrl.Replace("xml/", "xml/en/"));
-        }
+            HttpDataProvider<Speiseplan> httpDataProvider => new HttpDataProvider<Speiseplan>(
+                httpDataProvider.ApiUrl.Replace("xml/", "xml/en/")),
+            // TODO: Document this
+            FileDataProvider<Speiseplan> fileDataProvider => new FileDataProvider<Speiseplan>(fileDataProvider.Path +
+                "_en"),
+            _ => throw new("Unknown data provider")
+        };
     }
 
     public void Initialize()

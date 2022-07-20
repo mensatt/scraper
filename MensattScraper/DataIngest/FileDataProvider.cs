@@ -2,13 +2,14 @@
 
 public class FileDataProvider<T> : IDataProvider<T>
 {
-    private readonly string _path;
     private bool _fileRetrieved;
 
     public FileDataProvider(string path)
     {
-        _path = path;
+        Path = path;
     }
+
+    internal string Path { get; }
 
     public string? CopyLocation
     {
@@ -21,16 +22,16 @@ public class FileDataProvider<T> : IDataProvider<T>
 
     public IEnumerable<Stream> RetrieveStream()
     {
-        if (File.Exists(_path) && !_fileRetrieved)
+        if (File.Exists(Path) && !_fileRetrieved)
         {
             _fileRetrieved = true;
-            yield return File.OpenRead(_path);
+            yield return File.OpenRead(Path);
         }
 
 
-        if (!Directory.Exists(_path)) yield break;
+        if (!Directory.Exists(Path)) yield break;
 
-        foreach (var file in Directory.EnumerateFiles(_path, "*.xml"))
+        foreach (var file in Directory.EnumerateFiles(Path, "*.xml"))
             yield return File.OpenRead(file);
     }
 }
