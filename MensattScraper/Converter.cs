@@ -18,7 +18,11 @@ public static class Converter
     public static string ExtractElementFromTitle(string? title, TitleElement titleElement)
     {
         if (title is null)
+        {
+            SharedLogger.LogWarning($"Can't extract titleElement={titleElement} out of a null title");
             return null;
+        }
+
 
         if (string.IsNullOrEmpty(title) || !title.Contains('('))
             return titleElement == TitleElement.Name

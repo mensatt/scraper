@@ -119,7 +119,10 @@ public class Scraper : IDisposable
 
                     // This gets shown as a placeholder, before the different kinds of pizza are known
                     if (item.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
+                    {
+                        SharedLogger.LogWarning($"Noticed placeholder item, skipping {item.Title}");
                         continue;
+                    }
 
                     var secondaryTitle = secondaryMenu?.Tags?[secondaryDayTagIndex].Items?[secondaryItemIndex].Title;
                     secondaryItemIndex++;
@@ -181,7 +184,6 @@ public class Scraper : IDisposable
 
                 _databaseWrapper.ExecuteBatch();
 
-
                 // Delete all dishes, that were removed on a day which is more than two days in the future
                 foreach (var (dishId, occurrenceId) in _dailyOccurrences[currentDay])
                 {
@@ -218,7 +220,7 @@ public class Scraper : IDisposable
     public void Dispose()
     {
         _cancellationTokenSource.Cancel();
-        SharedLogger.LogInformation("Disposing scraper");
+        SharedLogger.LogInformation("Disposing scraper and associated data providers");
         if (_primaryDataProvider is IDisposable disposableDataProvider)
             disposableDataProvider.Dispose();
 

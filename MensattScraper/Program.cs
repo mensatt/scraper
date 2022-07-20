@@ -1,7 +1,6 @@
 ﻿using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.SourceCompat;
-using Microsoft.Extensions.Logging;
 
 namespace MensattScraper;
 
@@ -9,7 +8,6 @@ public static class Program
 {
     public static void Main()
     {
-        SharedLogger.LogInformation("Starting program");
         StartScraper();
     }
 

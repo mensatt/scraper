@@ -44,7 +44,7 @@ public static class DatabaseMapping
     private static void RefreshDatabaseMappings()
     {
         SharedLogger.LogInformation("Refreshing database mappings");
-        _locations = DatabaseWrapper.ExecuteSelectIdNameLocationIdCommand();
+        _locations = DatabaseWrapper!.ExecuteSelectIdNameLocationIdCommand();
         _tags = DatabaseWrapper.ExecuteSelectTagAllCommand();
     }
 
