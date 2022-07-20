@@ -54,7 +54,8 @@ public static class Converter
             // but I left it here for safety reasons
             Trace.Assert(end != -1, "Braces are mismatched, missing )");
 
-            var content = title.Substring(start, end - start);
+            // Trim is necessary, as sometimes the tags are like this "Pizza ( Wz)"
+            var content = title.Substring(start, end - start).Trim();
 
             var split = content.Split(',');
 

@@ -58,6 +58,7 @@ public class ExtractElementFromTitleUnitTest
     [InlineData("Vegane Currywurst mit Soße und Pommes frites(Wz)", "Vegane Currywurst mit Soße und Pommes frites")]
     [InlineData("Putenschnitzel (Wz) und Remouladensoße (4,5,Wz,Ei,So,Mi)und Chips (Wz)",
         "Putenschnitzel und Remouladensoße und Chips")]
+    [InlineData("Hähnchenbrust ( Wz) mit Pfeffer-Rahmsoße (1,Wz,Mi,Sel,Ge)", "Hähnchenbrust mit Pfeffer-Rahmsoße")]
     public void TitleWithTagParentheses(string? title, string expected)
     {
         var result =

@@ -30,6 +30,7 @@ public class ExtractElementFromTitleTagUnitTest
     [InlineData("Vegane Currywurst mit Soße und Pommes frites(Wz)", "Wz")]
     [InlineData("Putenschnitzel (Wz) und Remouladensoße (4,5,Wz,Ei,So,Mi)und Chips (Wz)",
         "Wz,4,5,Wz,Ei,So,Mi,Wz")]
+    [InlineData("Hähnchenbrust ( Wz) mit Pfeffer-Rahmsoße (1,Wz,Mi,Sel,Ge)", "Wz,1,Wz,Mi,Sel,Ge")]
     public void TitleWithTagParentheses(string? title, string expected)
     {
         var result = MensattScraper.Converter.ExtractElementFromTitle(title, MensattScraper.Converter.TitleElement.Tag);
