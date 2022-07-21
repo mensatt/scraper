@@ -78,4 +78,10 @@ public class ExtractElementFromTitleUnitTest
 
         Assert.Equal(expected, result);
     }
+
+    [Fact]
+    public void NullTitleReturnsNull()
+    {
+        Assert.Null(MensattScraper.Converter.ExtractElementFromTitle(null, MensattScraper.Converter.TitleElement.Name));
+    }
 }
