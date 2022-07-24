@@ -54,7 +54,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             new("location", NpgsqlDbType.Uuid),
             new("dish", NpgsqlDbType.Uuid),
             new("date", NpgsqlDbType.Date),
-            new("review_status", NpgsqlDbType.Unknown),
+            new("status", NpgsqlDbType.Unknown),
             new("kj", NpgsqlDbType.Integer),
             new("kcal", NpgsqlDbType.Integer),
             new("fat", NpgsqlDbType.Integer),
@@ -85,7 +85,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         {
             Parameters =
             {
-                new("review_status", NpgsqlDbType.Unknown),
+                new("status", NpgsqlDbType.Unknown),
                 new("id", NpgsqlDbType.Uuid)
             }
         };
@@ -138,7 +138,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     {
         _databaseConnection.Open();
         INpgsqlNameTranslator nameTranslator = new PostgresNameTranslator();
-        _databaseConnection.TypeMapper.MapEnum<ReviewStatus>("review_status", nameTranslator);
+        _databaseConnection.TypeMapper.MapEnum<OccurrenceStatus>("occurrence_status", nameTranslator);
 
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
                      typeof(NpgsqlDatabaseWrapper), this))
@@ -226,12 +226,12 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     // TODO: Use timestamp directly, instead of passing DayTag
     public Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
-        ReviewStatus status)
+        OccurrenceStatus status)
     {
         _insertOccurrenceCommand.Parameters["location"].Value = locationId;
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(dayTag.Timestamp);
-        _insertOccurrenceCommand.Parameters["review_status"].Value = status;
+        _insertOccurrenceCommand.Parameters["status"].Value = status;
         var kj = Converter.FloatStringToInt(item.Kj);
         _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 1000;
         var kcal = Converter.FloatStringToInt(item.Kcal);
@@ -268,9 +268,9 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return (Guid?) _insertDishAliasCommand.ExecuteScalar();
     }
 
-    public void ExecuteUpdateOccurrenceReviewStatusByIdCommand(ReviewStatus status, Guid id)
+    public void ExecuteUpdateOccurrenceReviewStatusByIdCommand(OccurrenceStatus status, Guid id)
     {
-        _updateOccurrenceReviewStatusByIdCommand.Parameters["review_status"].Value = status;
+        _updateOccurrenceReviewStatusByIdCommand.Parameters["status"].Value = status;
         _updateOccurrenceReviewStatusByIdCommand.Parameters["id"].Value = id;
         _updateOccurrenceReviewStatusByIdCommand.ExecuteNonQuery();
     }

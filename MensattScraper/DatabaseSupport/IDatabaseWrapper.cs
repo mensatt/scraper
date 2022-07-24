@@ -18,10 +18,10 @@ public interface IDatabaseWrapper
     public Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle);
 
     Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
-        ReviewStatus status);
+        OccurrenceStatus status);
 
     Guid? ExecuteInsertDishAliasCommand(string? dishName, Guid dish);
-    void ExecuteUpdateOccurrenceReviewStatusByIdCommand(ReviewStatus status, Guid id);
+    void ExecuteUpdateOccurrenceReviewStatusByIdCommand(OccurrenceStatus status, Guid id);
     void ExecuteDeleteOccurrenceByIdCommand(Guid id);
     void Dispose();
 }

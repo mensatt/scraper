@@ -165,7 +165,7 @@ public class Scraper : IDisposable
                     dailyDishes.Add(dishUuid);
 
                     var occurrenceStatus =
-                        firstPullOfTheDay ? ReviewStatus.AWAITING_APPROVAL : ReviewStatus.UPDATED;
+                        firstPullOfTheDay ? OccurrenceStatus.AWAITING_APPROVAL : OccurrenceStatus.UPDATED;
 
                     if (!firstPullOfTheDay)
                     {
@@ -177,7 +177,7 @@ public class Scraper : IDisposable
 
                         // If it is in the far future, the old one will be replaced by this
                         if (isInFarFuture)
-                            occurrenceStatus = ReviewStatus.AWAITING_APPROVAL;
+                            occurrenceStatus = OccurrenceStatus.AWAITING_APPROVAL;
                     }
 
                     var occurrenceUuid =
@@ -232,7 +232,7 @@ public class Scraper : IDisposable
                             _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(occurrenceId);
                         else
                             _databaseWrapper.ExecuteUpdateOccurrenceReviewStatusByIdCommand(
-                                ReviewStatus.PENDING_DELETION, occurrenceId);
+                                OccurrenceStatus.PENDING_DELETION, occurrenceId);
                     }
                 }
             }

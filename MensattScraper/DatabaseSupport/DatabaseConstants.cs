@@ -17,10 +17,10 @@ internal static class DatabaseConstants
         "INSERT INTO dish (name_de, name_en) VALUES (@name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";
 
     internal const string InsertOccurrenceSql =
-        "INSERT INTO occurrence (location, dish, date, review_status, kj, kcal, fat, saturated_fat, " +
+        "INSERT INTO occurrence (location, dish, date, status, kj, kcal, fat, saturated_fat, " +
         "carbohydrates, sugar, fiber, protein, salt, price_student, " +
         "price_staff, price_guest) " +
-        "VALUES (@location, @dish, @date, @review_status, @kj, @kcal, @fat, @saturated_fat, " +
+        "VALUES (@location, @dish, @date, @status, @kj, @kcal, @fat, @saturated_fat, " +
         "@carbohydrates, @sugar, @fiber, @protein, @salt, @price_student, " +
         "@price_staff, @price_guest) RETURNING id";
 
@@ -33,7 +33,7 @@ internal static class DatabaseConstants
         "INSERT INTO dish_alias VALUES(@alias_name, @normalized_alias_name, @dish) RETURNING dish";
 
     internal const string UpdateOccurrenceReviewStatusByIdSql =
-        "UPDATE occurrence SET review_status = @review_status WHERE id=@id";
+        "UPDATE occurrence SET status = @status WHERE id=@id";
 
     internal const string DeleteOccurrenceByIdSql = "DELETE FROM occurrence WHERE id=@id";
 }

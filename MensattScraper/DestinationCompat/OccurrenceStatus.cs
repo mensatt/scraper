@@ -1,6 +1,6 @@
 ﻿namespace MensattScraper.DestinationCompat;
 
-public enum ReviewStatus
+public enum OccurrenceStatus
 {
     APPROVED,
     AWAITING_APPROVAL,
