@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Xml.Serialization;
+using FuzzySharp;
 using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
+using MensattScraper.Discord;
 using MensattScraper.SourceCompat;
 using MensattScraper.Util;
 using Microsoft.Extensions.Logging;
@@ -25,6 +27,8 @@ public class Scraper : IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly CancellationToken _cancellationToken;
 
+    private readonly DiscordIntegration _discordIntegration;
+
     public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider)
     {
         _databaseWrapper = databaseWrapper;
@@ -43,6 +47,10 @@ public class Scraper : IDisposable
                 "_en"),
             _ => throw new("Unknown data provider")
         };
+
+        _discordIntegration = new();
+        _discordIntegration.StartIntegration();
+        _discordIntegration.MessageInteractionResponseEvent += DiscordIntegrationOnMessageInteractionResponseEvent;
     }
 
     public void Initialize()
@@ -57,7 +65,6 @@ public class Scraper : IDisposable
             throw new NullReferenceException("_dailyOccurrences must not be null");
 
         var timer = new Stopwatch();
-
 
         var zippedMenus = _primaryDataProvider.RetrieveUnderlying(_xmlSerializer)
             .Zip(_secondaryDataProvider.RetrieveUnderlying(_xmlSerializer));
@@ -160,8 +167,8 @@ public class Scraper : IDisposable
                         continue;
                     }
 
-                    var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
-
+                    var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title,
+                        out var fuzzyCheckRequired, out var transferData);
                     dailyDishes.Add(dishUuid);
 
                     var occurrenceStatus =
@@ -187,6 +194,19 @@ public class Scraper : IDisposable
                             dishUuid,
                             occurrenceStatus)!;
 
+                    // If this is true, this dish was not encountered before.
+                    // Thus we fuzzy search for matches and start the manual review process.
+                    if (fuzzyCheckRequired)
+                    {
+                        var extractedTitle =
+                            Converter.ExtractElementFromTitle(primaryItem.Title, Converter.TitleElement.Name);
+
+                        transferData!.Occurrence = occurrenceUuid;
+                        transferData.FullDishTitle = extractedTitle;
+                        transferData.SanitizedDishTitle = Converter.SanitizeString(extractedTitle);
+                        _discordIntegration.SendNewDish(transferData);
+                    }
+
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
                     foreach (var tag in Converter.ExtractSingleTagsFromTitle(primaryItem.Title))
@@ -200,20 +220,19 @@ public class Scraper : IDisposable
                     if (secondaryItem.Beilagen is null)
                     {
                         SharedLogger.LogWarning("Secondary item side dish is null, but primary wasn't");
-                        Debugger.Break();
                     }
 
                     if (primaryItem.Beilagen.Length != secondaryItem.Beilagen.Length)
                     {
                         SharedLogger.LogWarning("Side dish count mismatch");
-                        Debugger.Break();
                     }
 
                     var zippedSideDishes = Converter.GetSideDishes(primaryItem.Beilagen)
                         .Zip(Converter.GetSideDishes(secondaryItem.Beilagen));
                     foreach (var (primarySideDish, secondarySideDish) in zippedSideDishes)
                     {
-                        var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish);
+                        var sideDishUuid =
+                            InsertDishIfNotExists(primarySideDish, secondarySideDish, out _, out _);
                         _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
                     }
                 }
@@ -243,14 +262,76 @@ public class Scraper : IDisposable
         }
     }
 
+
     // TODO: Log all relevant data to prevent deleted dish_alias occurrence combinations
-    private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
+    private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle, out bool fuzzyCheck,
+        out TransferData? transferData)
     {
-        return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle) ??
-                       _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
-                           (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
-                                   _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!)))!;
+        transferData = null;
+        fuzzyCheck = false;
+        List<FuzzyResult> results = new();
+
+        var extracted = Converter.ExtractElementFromTitle(primaryDishTitle, Converter.TitleElement.Name);
+
+        var guid = _databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle);
+        if (guid == null)
+        {
+            var executeSelectDishByGermanNameCommand =
+                _databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle);
+            if (executeSelectDishByGermanNameCommand == null)
+            {
+                // If we reach this part, that means that this dish was not encountered before
+                var aliases = _databaseWrapper.ExecuteSelectDishAliasIdNameDeAllCommand();
+                results = new();
+                foreach (var (normalizedDishName, dish) in aliases)
+                {
+                    results.Add(new(Fuzz.WeightedRatio(Converter.SanitizeString(extracted), normalizedDishName),
+                        dish,
+                        normalizedDishName));
+                }
+
+                results.Sort();
+
+                if (results.Count != 0 && results.First().Score >= 50)
+                    fuzzyCheck = true;
+
+                executeSelectDishByGermanNameCommand =
+                    _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!;
+            }
+
+            guid = _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
+                (Guid) executeSelectDishByGermanNameCommand);
+
+            if (fuzzyCheck)
+                transferData = new(executeSelectDishByGermanNameCommand.Value,
+                    extracted, results.Take(3).ToList());
+        }
+
+        return (Guid) guid!;
     }
+
+    private void DiscordIntegrationOnMessageInteractionResponseEvent(object? sender,
+        MessageInteractionResponseEventArgs e)
+    {
+        switch (e.Type)
+        {
+            case MessageInteractionResponseType.AcceptFirst or MessageInteractionResponseType.AcceptSecond
+                or MessageInteractionResponseType.AcceptThird:
+                _databaseWrapper.ExecuteUpdateOccurrenceDishByIdCommand(e.TransferData.Results[(int) e.Type].Dish,
+                    e.TransferData.Occurrence);
+                _databaseWrapper.ExecuteUpdateDishAliasDishByAliasNameCommand(e.TransferData.Results[(int) e.Type].Dish,
+                    e.TransferData.DishAlias);
+                _databaseWrapper.ExecuteDeleteDishByIdCommand(e.TransferData.CreatedDishId);
+                break;
+            case MessageInteractionResponseType.InsertNew:
+                return;
+            case MessageInteractionResponseType.DiscardAll:
+                return;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
 
     public void Dispose()
     {

@@ -13,6 +13,8 @@ internal static class DatabaseConstants
 
     internal const string SelectTagAll = "SELECT key FROM tag";
 
+    internal const string SelectDishAliasIdNormalized = "SELECT dish, normalized_alias_name FROM dish_alias";
+
     internal const string InsertDishWithGermanNameSql =
         "INSERT INTO dish (name_de, name_en) VALUES (@name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";
 
@@ -34,6 +36,13 @@ internal static class DatabaseConstants
 
     internal const string UpdateOccurrenceReviewStatusByIdSql =
         "UPDATE occurrence SET status = @status WHERE id=@id";
+
+    internal const string UpdateOccurrenceDishByIdSql = "UPDATE occurrence SET dish = @dish WHERE id=@id";
+
+    internal const string UpdateDishAliasDishByAliasNameSql =
+        "UPDATE dish_alias SET dish = @dish WHERE alias_name=@alias_name";
+
+    internal const string DeleteDishByIdSql = "DELETE FROM dish WHERE id=@id";
 
     internal const string DeleteOccurrenceByIdSql = "DELETE FROM occurrence WHERE id=@id";
 }

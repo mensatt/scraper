@@ -38,6 +38,9 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     private readonly NpgsqlCommand _selectTagAllCommand = new(DatabaseConstants.SelectTagAll);
 
+    private readonly NpgsqlCommand _selectDishAliasIdNormalizedCommand =
+        new(DatabaseConstants.SelectDishAliasIdNormalized);
+
     private readonly NpgsqlCommand _insertDishCommand = new(DatabaseConstants.InsertDishWithGermanNameSql)
     {
         Parameters =
@@ -90,6 +93,15 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             }
         };
 
+    private readonly NpgsqlCommand _updateOccurrenceDishByIdCommand = new(DatabaseConstants.UpdateOccurrenceDishByIdSql)
+    {
+        Parameters =
+        {
+            new("dish", NpgsqlDbType.Uuid),
+            new("id", NpgsqlDbType.Uuid),
+        }
+    };
+
     private readonly NpgsqlCommand _deleteOccurrenceCommand = new(DatabaseConstants.DeleteOccurrenceByIdSql)
     {
         Parameters =
@@ -97,6 +109,25 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             new("id", NpgsqlDbType.Uuid)
         }
     };
+
+    private readonly NpgsqlCommand _deleteDishByIdCommand = new(DatabaseConstants.DeleteDishByIdSql)
+    {
+        Parameters =
+        {
+            new("id", NpgsqlDbType.Uuid)
+        }
+    };
+
+    private readonly NpgsqlCommand _updateDishAliasDishByAliasNameCommand =
+        new(DatabaseConstants.UpdateDishAliasDishByAliasNameSql)
+        {
+            Parameters =
+            {
+                new("dish", NpgsqlDbType.Uuid),
+                new("alias_name", NpgsqlDbType.Varchar)
+            }
+        };
+
 
     private readonly NpgsqlBatch _commandBatch = new();
 
@@ -215,6 +246,15 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return tagList;
     }
 
+    public Dictionary<string, Guid> ExecuteSelectDishAliasIdNameDeAllCommand()
+    {
+        var aliases = new Dictionary<string, Guid>();
+        using var reader = _selectDishAliasIdNormalizedCommand.ExecuteReader();
+        while (reader.Read())
+            aliases.Add(reader.GetString("normalized_alias_name"), reader.GetGuid("dish"));
+        return aliases;
+    }
+
     public Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle)
     {
         _insertDishCommand.Parameters["name_de"].Value =
@@ -275,8 +315,29 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _updateOccurrenceReviewStatusByIdCommand.ExecuteNonQuery();
     }
 
+    public void ExecuteUpdateOccurrenceDishByIdCommand(Guid dishId, Guid occurrenceId)
+    {
+        _updateOccurrenceDishByIdCommand.Parameters["dish"].Value = dishId;
+        _updateOccurrenceDishByIdCommand.Parameters["id"].Value = occurrenceId;
+        _updateOccurrenceDishByIdCommand.ExecuteNonQuery();
+    }
+
+    public void ExecuteUpdateDishAliasDishByAliasNameCommand(Guid dish, string aliasName)
+    {
+        _updateDishAliasDishByAliasNameCommand.Parameters["dish"].Value = dish;
+        _updateDishAliasDishByAliasNameCommand.Parameters["alias_name"].Value = aliasName;
+        _updateDishAliasDishByAliasNameCommand.ExecuteNonQuery();
+    }
+
+    public void ExecuteDeleteDishByIdCommand(Guid id)
+    {
+        _deleteDishByIdCommand.Parameters["id"].Value = id;
+        _deleteDishByIdCommand.ExecuteNonQuery();
+    }
+
     public void ExecuteDeleteOccurrenceByIdCommand(Guid id)
     {
+        SharedLogger.LogInformation($"Deleting occurrence with id={id}, ensure that there are no invalid dishes");
         _deleteOccurrenceCommand.Parameters["id"].Value = id;
         _deleteOccurrenceCommand.ExecuteNonQuery();
     }

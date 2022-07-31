@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MensattScraper", "MensattSc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MensattScraper.Tests", "MensattScraper.Tests\MensattScraper.Tests.csproj", "{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MensattScraper.Discord", "MensattScraper.Discord\MensattScraper.Discord.csproj", "{0E98ABA2-5051-4ABD-9F8F-3D804B9301F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A6CD7DC-70F0-48A4-9CA9-C86E274AD931}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E98ABA2-5051-4ABD-9F8F-3D804B9301F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E98ABA2-5051-4ABD-9F8F-3D804B9301F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E98ABA2-5051-4ABD-9F8F-3D804B9301F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E98ABA2-5051-4ABD-9F8F-3D804B9301F3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
