@@ -29,4 +29,10 @@
       <None Remove="content_en\**" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="..\Dockerfile">
+        <Link>Dockerfile</Link>
+      </Content>
+    </ItemGroup>
+
 </Project>
