@@ -51,6 +51,8 @@ public class Scraper : IDisposable
         _discordIntegration = new();
         _discordIntegration.StartIntegration();
         _discordIntegration.MessageInteractionResponseEvent += DiscordIntegrationOnMessageInteractionResponseEvent;
+        // TODO: Await properly
+        Thread.Sleep(5000);
     }
 
     public void Initialize()
