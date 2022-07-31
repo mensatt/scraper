@@ -88,6 +88,9 @@ public class DiscordIntegration
 
         _dishList.Add(random, new(transferData));
 
+        // TODO: Rate limit properly
+        Thread.Sleep(500);
+
         await _textChannel.SendMessageAsync(embed: embedBuilder.Build(), components: componentBuilder.Build());
     }
 
