@@ -18,14 +18,17 @@ public class DiscordIntegration
         await _client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("MENSATT_SCRAPER_DISCORD_TOKEN"));
         await _client.StartAsync();
 
+        var guildId = ulong.Parse(Environment.GetEnvironmentVariable(
+            "MENSATT_SCRAPER_DISCORD_GUILD"));
+        var channelId = ulong.Parse(Environment.GetEnvironmentVariable(
+            "MENSATT_SCRAPER_DISCORD_CHANNEL"));
+        Console.WriteLine($"Sending to discord guild={guildId} and channel={channelId}");
+
         _client.Ready += () =>
         {
             Console.WriteLine("Discord bot connected");
-            _textChannel = _client.Guilds.First(x => x.Id ==
-                                                     ulong.Parse(Environment.GetEnvironmentVariable(
-                                                         "MENSATT_SCRAPER_DISCORD_GUILD"))).TextChannels
-                .First(x => x.Id == ulong.Parse(Environment.GetEnvironmentVariable(
-                    "MENSATT_SCRAPER_DISCORD_CHANNEL")));
+            _textChannel = _client.Guilds.First(x => x.Id == guildId).TextChannels
+                .First(x => x.Id == channelId);
             return Task.CompletedTask;
         };
 
