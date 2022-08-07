@@ -15,6 +15,9 @@ internal static class Configuration
     internal static readonly string? WebhookUrl = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_WEBHOOK") ??
                                                   null;
 
+    internal static readonly string ContentDirectory = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_CONTENT") ??
+                                                       throw new ArgumentException("Content directory not set");
+
     internal static readonly ILogger SharedLogger = new LogDelegator(
         LoggerFactory.Create(builder =>
         {

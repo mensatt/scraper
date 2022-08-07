@@ -17,7 +17,10 @@ public class HttpDataProvider<T> : IDataProvider<T>, IDisposable
 
 
     // TODO: Document this
-    public string? CopyLocation => ApiUrl.Contains("/en/") ? "content_en" : "content";
+    public string? CopyLocation => ApiUrl.Contains("/en/")
+        ? Path.Combine(ContentDirectory, "content_en")
+        : Path.Combine(ContentDirectory, "content");
+
     public uint GetDataDelayInSeconds { get; }
 
     public IEnumerable<Stream> RetrieveStream()

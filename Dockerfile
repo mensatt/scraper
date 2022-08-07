@@ -4,7 +4,6 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY ["MensattScraper/MensattScraper.csproj", "MensattScraper/"]
-COPY ["MensattScraper.Discord/MensattScraper.Discord.csproj", "MensattScraper.Discord/"]
 RUN dotnet restore "MensattScraper/MensattScraper.csproj"
 COPY . .
 WORKDIR "/src/MensattScraper"
