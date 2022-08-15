@@ -239,7 +239,7 @@ public class Scraper : IDisposable
 
             SharedLogger.LogInformation($"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
 
-            _cancellationToken.WaitHandle.WaitOne(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));
+            Thread.Sleep(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));
         }
     }
 
