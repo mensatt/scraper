@@ -6,8 +6,9 @@ namespace MensattScraper;
 
 internal static class Configuration
 {
-    internal static readonly string ApiUrl = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_API_URL") ??
-                                             throw new ArgumentException("Api url not set");
+    internal static readonly string[] ApiUrls =
+        Environment.GetEnvironmentVariable("MENSATT_SCRAPER_API_URL")?.Split(";") ??
+        throw new ArgumentException("Api url not set");
 
     internal static readonly string DbConnection = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_DB") ??
                                                    throw new ArgumentException("Database string not set");

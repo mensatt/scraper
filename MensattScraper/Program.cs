@@ -15,20 +15,30 @@ public static class Program
     {
         IDatabaseWrapper privateDatabaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
         privateDatabaseWrapper.ConnectAndPrepare();
-        // Creating multiple database wrappers on the same connection should be fine, as they are pooled
-        IDatabaseWrapper databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
-        IDataProvider<Speiseplan> dataProvider = new HttpDataProvider<Speiseplan>(ApiUrl);
-        using var scraper = new Scraper(databaseWrapper, dataProvider);
-        scraper.Initialize();
+
+        foreach (var apiUrl in ApiUrls)
+        {
+            Task.Factory.StartNew(() =>
+            {
+                // Creating multiple database wrappers on the same connection should be fine, as they are pooled
+                IDatabaseWrapper databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
+                IDataProvider<Speiseplan> dataProvider = new HttpDataProvider<Speiseplan>(apiUrl);
+                using var scraper = new Scraper(databaseWrapper, dataProvider);
+                scraper.Initialize();
+                scraper.Scrape();
+            }, TaskCreationOptions.LongRunning);
+        }
+
         new Thread(() =>
         {
             while (true)
             {
                 var line = Console.ReadLine();
                 if (line is null or not "quit") continue;
+                // TODO: Proper shutdown
+                Environment.Exit(0);
                 return;
             }
         }).Start();
-        scraper.Scrape();
     }
 }

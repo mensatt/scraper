@@ -43,9 +43,12 @@ public static class DatabaseMapping
 
     private static void RefreshDatabaseMappings()
     {
-        SharedLogger.LogInformation("Refreshing database mappings");
-        _locations = DatabaseWrapper!.ExecuteSelectIdNameLocationIdCommand();
-        _tags = DatabaseWrapper.ExecuteSelectTagAllCommand();
+        lock (_locations)
+        {
+            SharedLogger.LogInformation("Refreshing database mappings");
+            _locations = DatabaseWrapper!.ExecuteSelectIdNameLocationIdCommand();
+            _tags = DatabaseWrapper.ExecuteSelectTagAllCommand();
+        }
     }
 
     // I believe those methods don't need to be locked, as they are readonly
