@@ -23,7 +23,7 @@ public static class Program
                 // Creating multiple database wrappers on the same connection should be fine, as they are pooled
                 IDatabaseWrapper databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
                 IDataProvider<Speiseplan> dataProvider = new HttpDataProvider<Speiseplan>(apiUrl);
-                using var scraper = new Scraper(databaseWrapper, dataProvider);
+                var scraper = new Scraper(databaseWrapper, dataProvider);
                 scraper.Initialize();
                 scraper.Scrape();
             }, TaskCreationOptions.LongRunning);
