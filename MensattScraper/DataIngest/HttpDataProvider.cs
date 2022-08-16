@@ -25,11 +25,14 @@ public class HttpDataProvider<T> : IDataProvider<T>, IDisposable
 
     public IEnumerable<Stream> RetrieveStream()
     {
-        // Should be disposed when the stream is disposed
-        var httpResponse = _client.GetAsync(ApiUrl).Result;
-        SharedLogger.LogInformation($"Queried {ApiUrl} for new data, received: {httpResponse.StatusCode}");
+        while (true)
+        {
+            // Should be disposed when the stream is disposed
+            var httpResponse = _client.GetAsync(ApiUrl).Result;
+            SharedLogger.LogInformation($"Queried {ApiUrl} for new data, received: {httpResponse.StatusCode}");
 
-        yield return httpResponse.Content.ReadAsStream();
+            yield return httpResponse.Content.ReadAsStream();
+        }
     }
 
     public void Dispose()

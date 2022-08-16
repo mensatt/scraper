@@ -238,8 +238,7 @@ public class Scraper : IDisposable
             }
 
             SharedLogger.LogInformation($"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
-
-            Task.Delay(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds), _cancellationToken);
+            Task.Delay(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds), _cancellationToken).Wait();
         }
     }
 
