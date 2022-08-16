@@ -1,6 +1,7 @@
 ﻿using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.SourceCompat;
+using Microsoft.Extensions.Logging;
 
 namespace MensattScraper;
 
@@ -28,6 +29,8 @@ public static class Program
                 scraper.Scrape();
             }, TaskCreationOptions.LongRunning);
         }
+
+        SharedLogger.LogInformation("Created all scraping tasks");
 
         new Thread(() =>
         {
