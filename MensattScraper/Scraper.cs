@@ -62,8 +62,10 @@ public class Scraper : IDisposable
         if (_dailyOccurrences is null)
             throw new NullReferenceException("_dailyOccurrences must not be null");
 
-        var timer = new Stopwatch();
+        // TODO: Handle dishes properly on cold start
+        var firstIteration = true;
 
+        var timer = new Stopwatch();
 
         var zippedMenus = _primaryDataProvider.RetrieveUnderlying(_xmlSerializer)
             .Zip(_secondaryDataProvider.RetrieveUnderlying(_xmlSerializer));
@@ -237,7 +239,7 @@ public class Scraper : IDisposable
                 foreach (var (dishId, occurrenceId) in _dailyOccurrences[currentDay])
                 {
                     // If this dish does not exist in the current XML, delete it
-                    if (!dailyDishes.Contains(dishId))
+                    if (!dailyDishes.Contains(dishId) && !firstIteration)
                     {
                         SharedLogger.LogInformation(
                             $"Noticed dish removal of {dishId}, isFarInTheFuture={isInFarFuture}");
@@ -250,6 +252,8 @@ public class Scraper : IDisposable
                 }
             }
 
+            if (firstIteration)
+                firstIteration = false;
             SharedLogger.LogInformation(
                 $"[{Task.CurrentId}] Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
             Task.Delay(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds), _cancellationToken).Wait();
