@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Xml.Serialization;
+using FuzzySharp;
 using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
+using MensattScraper.Internals;
 using MensattScraper.SourceCompat;
 using MensattScraper.Util;
 using Microsoft.Extensions.Logging;
@@ -25,10 +27,14 @@ public class Scraper : IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly CancellationToken _cancellationToken;
 
-    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider)
+    private readonly InternalDatabaseWrapper _internalDatabaseWrapper;
+
+    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider,
+        InternalDatabaseWrapper internalDatabaseWrapper)
     {
         _databaseWrapper = databaseWrapper;
         _primaryDataProvider = primaryDataProvider;
+        _internalDatabaseWrapper = internalDatabaseWrapper;
         _xmlSerializer = new(typeof(Speiseplan));
         _cancellationTokenSource = new();
         _cancellationToken = _cancellationTokenSource.Token;
@@ -160,7 +166,8 @@ public class Scraper : IDisposable
                         continue;
                     }
 
-                    var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
+                    var dishUuid =
+                        InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title, out var confidenceSuggestion);
 
                     dailyDishes.Add(dishUuid);
 
@@ -186,6 +193,12 @@ public class Scraper : IDisposable
                             primaryItem,
                             dishUuid,
                             occurrenceStatus)!;
+
+                    if (confidenceSuggestion is not null)
+                    {
+                        confidenceSuggestion.OccurrenceId = occurrenceUuid;
+                        _internalDatabaseWrapper.InsertConfidenceSuggestion(confidenceSuggestion);
+                    }
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
@@ -213,7 +226,7 @@ public class Scraper : IDisposable
                         .Zip(Converter.GetSideDishes(secondaryItem.Beilagen));
                     foreach (var (primarySideDish, secondarySideDish) in zippedSideDishes)
                     {
-                        var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish);
+                        var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish, out _);
                         _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
                     }
                 }
@@ -244,12 +257,37 @@ public class Scraper : IDisposable
     }
 
     // TODO: Log all relevant data to prevent deleted dish_alias occurrence combinations
-    private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
+    private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle,
+        out ConfidenceSuggestion? confidenceSuggestion)
     {
-        return (Guid) (_databaseWrapper.ExecuteSelectDishAliasByNameCommand(primaryDishTitle) ??
-                       _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
-                           (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
-                                   _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!)))!;
+        confidenceSuggestion = null;
+
+        var dishAlias = _databaseWrapper.ExecuteSelectDishNormalizedAliasByNameCommand(primaryDishTitle);
+        var dish =
+            (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
+                    _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!);
+        if (dishAlias == null)
+        {
+            SharedLogger.LogInformation($"Injecting confidence suggestions for {primaryDishTitle}");
+            var alias = Converter.ExtractElementFromTitle(primaryDishTitle, Converter.TitleElement.Name);
+
+            confidenceSuggestion = new(Guid.Empty, dish, alias, GetSuggestions(Converter.SanitizeString(alias)));
+
+            dishAlias = _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
+                dish);
+        }
+
+        // Same as dish
+        return (Guid) dishAlias!;
+    }
+
+    private List<Tuple<float, string>> GetSuggestions(string normalizedDishName, int count = 3)
+    {
+        var aliases = _databaseWrapper.ExecuteSelectDishAliasesNormalizedDishCommand();
+        var results = new List<Tuple<float, string>>();
+        foreach (var (normalizedAlias, _) in aliases)
+            results.Add(new(Fuzz.WeightedRatio(normalizedDishName, normalizedAlias), normalizedAlias));
+        return results.OrderByDescending(x => x.Item1).Take(count).ToList();
     }
 
     public void Dispose()
