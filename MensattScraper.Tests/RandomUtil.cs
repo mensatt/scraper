@@ -15,7 +15,7 @@ public class RandomUtil
 
     private static readonly Random Rng = new(0xae75a77);
 
-    internal static string? GenerateRandomString(uint length)
+    internal static string GenerateRandomString(uint length)
     {
         var resultBuilder = new StringBuilder((int) length);
         for (uint i = 0; i < length; i++)
