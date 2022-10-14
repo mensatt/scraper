@@ -75,7 +75,7 @@ public class Scraper : IDisposable
             timer.Restart();
 
             // Free up entries that are more than 3 days old
-            _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddDays(-3));
+            _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddMonths(-1));
 
             // TODO: Evaluate the error handling should be extracted into it's own method
             if (primaryMenu is null || secondaryMenu is null)
@@ -131,6 +131,15 @@ public class Scraper : IDisposable
                 }
 
                 var currentDay = Converter.GetDateFromTimestamp(primaryDay.Timestamp);
+
+                if (DateOnly.FromDateTime(DateTime.Now) > currentDay)
+                {
+                    SharedLogger.LogWarning(
+                        $"Noticed menu from the past, today is {DateOnly.FromDateTime(DateTime.Now)} menu was from {currentDay}"
+                    );
+                    continue;
+                }
+
                 var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
                 bool firstPullOfTheDay;
                 if (!_dailyOccurrences.ContainsKey(currentDay))
