@@ -6,7 +6,6 @@ using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 using MensattScraper.Internals;
 using MensattScraper.SourceCompat;
-using MensattScraper.Util;
 using Microsoft.Extensions.Logging;
 
 namespace MensattScraper;
@@ -75,7 +74,7 @@ public class Scraper : IDisposable
             timer.Restart();
 
             // Free up entries that are more than 3 days old
-            _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddMonths(-1));
+            // _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddMonths(-1));
 
             // TODO: Evaluate the error handling should be extracted into it's own method
             if (primaryMenu is null || secondaryMenu is null)
@@ -155,7 +154,7 @@ public class Scraper : IDisposable
                 // Used to compare the dishes of one day with the dishes of the same day, on a previous scrape
                 // Without this, it would not be possible to check for removed dishes (which get deleted if they are
                 // to far in the future)
-                var dailyDishes = new HashSet<Guid>();
+                // var dailyDishes = new HashSet<Guid>();
 
                 _databaseWrapper.ResetBatch();
 
@@ -180,7 +179,7 @@ public class Scraper : IDisposable
                     var dishUuid =
                         InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title, out var confidenceSuggestion);
 
-                    dailyDishes.Add(dishUuid);
+                    // dailyDishes.Add(dishUuid);
 
                     var occurrenceStatus =
                         firstPullOfTheDay ? OccurrenceStatus.AWAITING_APPROVAL : OccurrenceStatus.UPDATED;
@@ -245,7 +244,7 @@ public class Scraper : IDisposable
                 _databaseWrapper.ExecuteBatch();
 
                 // Delete all dishes, that were removed on a day which is more than two days in the future
-                foreach (var (dishId, occurrenceId) in _dailyOccurrences[currentDay])
+                /* foreach (var (dishId, occurrenceId) in _dailyOccurrences[currentDay])
                 {
                     // If this dish does not exist in the current XML, delete it
                     if (!dailyDishes.Contains(dishId) && !firstIteration)
@@ -258,7 +257,7 @@ public class Scraper : IDisposable
                             _databaseWrapper.ExecuteUpdateOccurrenceReviewStatusByIdCommand(
                                 OccurrenceStatus.PENDING_DELETION, occurrenceId);
                     }
-                }
+                } */
             }
 
             if (firstIteration)
