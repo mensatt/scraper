@@ -1,6 +1,5 @@
 ﻿using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
-using MensattScraper.Internals;
 using MensattScraper.SourceCompat;
 using Microsoft.Extensions.Logging;
 
@@ -15,14 +14,6 @@ public static class Program
 
     private static void Init()
     {
-        var internalDatabaseWrapper = new InternalDatabaseWrapper();
-        internalDatabaseWrapper.Init();
-
-        var discordIntegration =
-            new DiscordIntegration.DiscordIntegration(internalDatabaseWrapper,
-                new NpgsqlDatabaseWrapper(DbConnection));
-        discordIntegration.Init();
-
         // TODO: Wait properly
         Thread.Sleep(5000);
 
@@ -33,7 +24,7 @@ public static class Program
                 // Creating multiple database wrappers on the same connection should be fine, as they are pooled
                 IDatabaseWrapper databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
                 IDataProvider<Speiseplan> dataProvider = new HttpDataProvider<Speiseplan>(apiUrl);
-                var scraper = new Scraper(databaseWrapper, dataProvider, internalDatabaseWrapper);
+                var scraper = new Scraper(databaseWrapper, dataProvider);
                 scraper.Initialize();
                 scraper.Scrape();
             }, TaskCreationOptions.LongRunning);

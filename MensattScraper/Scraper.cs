@@ -4,7 +4,6 @@ using FuzzySharp;
 using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
-using MensattScraper.Internals;
 using MensattScraper.SourceCompat;
 using Microsoft.Extensions.Logging;
 
@@ -26,14 +25,10 @@ public class Scraper : IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly CancellationToken _cancellationToken;
 
-    private readonly InternalDatabaseWrapper _internalDatabaseWrapper;
-
-    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider,
-        InternalDatabaseWrapper internalDatabaseWrapper)
+    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider)
     {
         _databaseWrapper = databaseWrapper;
         _primaryDataProvider = primaryDataProvider;
-        _internalDatabaseWrapper = internalDatabaseWrapper;
         _xmlSerializer = new(typeof(Speiseplan));
         _cancellationTokenSource = new();
         _cancellationToken = _cancellationTokenSource.Token;
@@ -176,8 +171,7 @@ public class Scraper : IDisposable
                         continue;
                     }
 
-                    var dishUuid =
-                        InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title, out var confidenceSuggestion);
+                    var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
                     // dailyDishes.Add(dishUuid);
 
@@ -203,12 +197,6 @@ public class Scraper : IDisposable
                             primaryItem,
                             dishUuid,
                             occurrenceStatus)!;
-
-                    if (confidenceSuggestion is not null)
-                    {
-                        confidenceSuggestion.OccurrenceId = occurrenceUuid;
-                        _internalDatabaseWrapper.InsertConfidenceSuggestion(confidenceSuggestion);
-                    }
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
@@ -236,7 +224,7 @@ public class Scraper : IDisposable
                         .Zip(Converter.GetSideDishes(secondaryItem.Beilagen));
                     foreach (var (primarySideDish, secondarySideDish) in zippedSideDishes)
                     {
-                        var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish, out _);
+                        var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish);
                         _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
                     }
                 }
@@ -269,11 +257,8 @@ public class Scraper : IDisposable
     }
 
     // TODO: Log all relevant data to prevent deleted dish_alias occurrence combinations
-    private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle,
-        out ConfidenceSuggestion? confidenceSuggestion)
+    private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
     {
-        confidenceSuggestion = null;
-
         var dishAlias = _databaseWrapper.ExecuteSelectDishNormalizedAliasByNameCommand(primaryDishTitle);
         var dish =
             (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
@@ -282,8 +267,6 @@ public class Scraper : IDisposable
         {
             SharedLogger.LogInformation($"Injecting confidence suggestions for {primaryDishTitle}");
             var alias = Converter.ExtractElementFromTitle(primaryDishTitle, Converter.TitleElement.Name);
-
-            confidenceSuggestion = new(Guid.Empty, dish, alias, GetSuggestions(Converter.SanitizeString(alias)));
 
             dishAlias = _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
                 dish);
