@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Xml.Serialization;
-using FuzzySharp;
 using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
@@ -56,9 +55,6 @@ public class Scraper : IDisposable
         if (_dailyOccurrences is null)
             throw new NullReferenceException("_dailyOccurrences must not be null");
 
-        // TODO: Handle dishes properly on cold start
-        var firstIteration = true;
-
         var timer = new Stopwatch();
 
         var zippedMenus = _primaryDataProvider.RetrieveUnderlying(_xmlSerializer)
@@ -67,9 +63,6 @@ public class Scraper : IDisposable
         {
             SharedLogger.LogInformation("Processing new menus");
             timer.Restart();
-
-            // Free up entries that are more than 3 days old
-            // _dailyOccurrences.RemoveAllByKey(key => key < DateOnly.FromDateTime(DateTime.Today).AddMonths(-1));
 
             // TODO: Evaluate the error handling should be extracted into it's own method
             if (primaryMenu is null || secondaryMenu is null)
@@ -146,11 +139,6 @@ public class Scraper : IDisposable
                     firstPullOfTheDay = false;
                 }
 
-                // Used to compare the dishes of one day with the dishes of the same day, on a previous scrape
-                // Without this, it would not be possible to check for removed dishes (which get deleted if they are
-                // to far in the future)
-                // var dailyDishes = new HashSet<Guid>();
-
                 _databaseWrapper.ResetBatch();
 
                 var zippedItems = primaryDay.Items.Zip(secondaryDay.Items);
@@ -163,13 +151,6 @@ public class Scraper : IDisposable
                     }
 
                     // TODO: Check item consistency, override ==
-
-                    // This gets shown as a placeholder, before the different kinds of pizza are known
-                    if (primaryItem.Title == "Heute ab 15.30 Uhr Pizza an unserer Cafebar")
-                    {
-                        SharedLogger.LogWarning($"Noticed placeholder item, skipping {primaryItem.Title}");
-                        continue;
-                    }
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
@@ -230,26 +211,8 @@ public class Scraper : IDisposable
                 }
 
                 _databaseWrapper.ExecuteBatch();
-
-                // Delete all dishes, that were removed on a day which is more than two days in the future
-                /* foreach (var (dishId, occurrenceId) in _dailyOccurrences[currentDay])
-                {
-                    // If this dish does not exist in the current XML, delete it
-                    if (!dailyDishes.Contains(dishId) && !firstIteration)
-                    {
-                        SharedLogger.LogInformation(
-                            $"Noticed dish removal of {dishId}, isFarInTheFuture={isInFarFuture}");
-                        if (isInFarFuture)
-                            _databaseWrapper.ExecuteDeleteOccurrenceByIdCommand(occurrenceId);
-                        else
-                            _databaseWrapper.ExecuteUpdateOccurrenceReviewStatusByIdCommand(
-                                OccurrenceStatus.PENDING_DELETION, occurrenceId);
-                    }
-                } */
             }
 
-            if (firstIteration)
-                firstIteration = false;
             SharedLogger.LogInformation(
                 $"[{Task.CurrentId}] Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
             Task.Delay(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds), _cancellationToken).Wait();
@@ -266,7 +229,6 @@ public class Scraper : IDisposable
         if (dishAlias == null)
         {
             SharedLogger.LogInformation($"Injecting confidence suggestions for {primaryDishTitle}");
-            var alias = Converter.ExtractElementFromTitle(primaryDishTitle, Converter.TitleElement.Name);
 
             dishAlias = _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
                 dish);
@@ -274,15 +236,6 @@ public class Scraper : IDisposable
 
         // Same as dish
         return (Guid) dishAlias!;
-    }
-
-    private List<Tuple<float, string>> GetSuggestions(string normalizedDishName, int count = 3)
-    {
-        var aliases = _databaseWrapper.ExecuteSelectDishAliasesNormalizedDishCommand();
-        var results = new List<Tuple<float, string>>();
-        foreach (var (normalizedAlias, _) in aliases)
-            results.Add(new(Fuzz.WeightedRatio(normalizedDishName, normalizedAlias), normalizedAlias));
-        return results.OrderByDescending(x => x.Item1).Take(count).ToList();
     }
 
     public void Dispose()

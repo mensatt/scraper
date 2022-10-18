@@ -14,9 +14,6 @@ public static class Program
 
     private static void Init()
     {
-        // TODO: Wait properly
-        Thread.Sleep(5000);
-
         foreach (var apiUrl in ApiUrls)
         {
             Task.Factory.StartNew(() =>
