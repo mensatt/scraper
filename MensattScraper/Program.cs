@@ -26,6 +26,8 @@ public static class Program
                 scraper.Initialize();
                 scraper.Scrape();
             }).Start();
+            // Space out workers to make 1. the api and 2. discord happy
+            Thread.Sleep(TimeSpan.FromSeconds(5));
         }
 
         SharedLogger.LogInformation("Created all scraping threads");
