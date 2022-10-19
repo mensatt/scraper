@@ -218,7 +218,7 @@ public class Scraper : IDisposable
 
             _ownedLogger.LogInformation(
                 $"[{Task.CurrentId}] Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
-            Task.Delay(TimeSpan.FromSeconds(20), _cancellationToken).Wait();
+            Task.Delay(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds), _cancellationToken).Wait();
         }
     }
 
