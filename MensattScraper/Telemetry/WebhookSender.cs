@@ -23,7 +23,7 @@ public class WebhookSender : ILogger
     private static string GenerateWrap(LogLevel level, string x) => level switch
     {
         LogLevel.Trace or LogLevel.Debug or LogLevel.Information => $"```ini\\n[{x}]\\n```",
-        LogLevel.Warning => $"```http\\n{x}\\n```",
+        LogLevel.Warning => $"```fix\\n{x}\\n```",
         LogLevel.Error or LogLevel.Critical => $"```diff\\n-{x}\\n```",
         LogLevel.None => x,
         _ => throw new ArgumentOutOfRangeException(nameof(level), level, null)
