@@ -5,20 +5,42 @@ namespace MensattScraper.Telemetry;
 
 public class WebhookSender : ILogger
 {
-    private readonly HttpClient _httpClient;
+    private readonly Thread _slowSenderThread;
+    private readonly Queue<StringContent> _messages;
 
     public WebhookSender()
     {
-        _httpClient = new();
+        HttpClient httpClient = new();
+        _messages = new();
+
+        _slowSenderThread = new(() =>
+        {
+            while (_messages.Count != 0)
+            {
+                var currentMessage = _messages.Dequeue();
+                var postedMessage = httpClient.PostAsync(WebhookUrl, currentMessage).Result;
+                if (!postedMessage.IsSuccessStatusCode)
+                {
+                    SharedLogger.LogError(
+                        $"Could not send webhook message. StatusCode: {postedMessage.StatusCode}, Reason: {postedMessage.ReasonPhrase}, Response: {postedMessage.Content.ToString()}");
+                }
+
+                // TODO: Improve rate limit handling
+                Thread.Sleep(TimeSpan.FromMilliseconds(200));
+            }
+        });
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
-        => _httpClient.PostAsync(WebhookUrl,
-            new StringContent(
-                $"{{\"content\" : \"{GenerateWrap(logLevel, $"{DateTime.UtcNow.ToString("HH:mm:ss")} {logLevel}: {formatter.Invoke(state, exception)}")}\"}}",
-                Encoding.UTF8,
-                "application/json"));
+    {
+        _messages.Enqueue(new(
+            $"{{\"content\" : \"{GenerateWrap(logLevel, $"{DateTime.UtcNow.ToString("HH:mm:ss")} {logLevel}: {formatter.Invoke(state, exception)}")}\"}}",
+            Encoding.UTF8,
+            "application/json"));
+        if (!_slowSenderThread.IsAlive)
+            _slowSenderThread.Start();
+    }
 
     private static string GenerateWrap(LogLevel level, string x) => level switch
     {
