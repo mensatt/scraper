@@ -24,14 +24,17 @@ public class Scraper : IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly CancellationToken _cancellationToken;
 
+    private readonly ILogger _ownedLogger;
+
     public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider)
     {
+        _ownedLogger = CreateSimpleLogger($"Worker-{Task.CurrentId}");
         _databaseWrapper = databaseWrapper;
         _primaryDataProvider = primaryDataProvider;
         _xmlSerializer = new(typeof(Speiseplan));
         _cancellationTokenSource = new();
         _cancellationToken = _cancellationTokenSource.Token;
-        _cancellationToken.Register(() => SharedLogger.LogInformation("Cancelling sleep token"));
+        _cancellationToken.Register(() => _ownedLogger.LogInformation("Cancelling sleep token"));
 
         _secondaryDataProvider = _primaryDataProvider switch
         {
@@ -61,13 +64,13 @@ public class Scraper : IDisposable
             .Zip(_secondaryDataProvider.RetrieveUnderlying(_xmlSerializer));
         foreach (var (primaryMenu, secondaryMenu) in zippedMenus)
         {
-            SharedLogger.LogInformation("Processing new menus");
+            _ownedLogger.LogInformation("Processing new menus");
             timer.Restart();
 
             // TODO: Evaluate the error handling should be extracted into it's own method
             if (primaryMenu is null || secondaryMenu is null)
             {
-                SharedLogger.LogError(
+                _ownedLogger.LogError(
                     $"primaryMenu is null -> {primaryMenu == null}," +
                     $" secondaryMenu is null -> {secondaryMenu == null}");
                 continue;
@@ -76,7 +79,7 @@ public class Scraper : IDisposable
             // Happens on holidays, where the xml is provided but empty
             if (primaryMenu.Tags is null || secondaryMenu.Tags is null)
             {
-                SharedLogger.LogError(
+                _ownedLogger.LogError(
                     $"Menu days were empty, is primaryMenu.Tags null -> {primaryMenu.Tags == null}," +
                     $" is secondaryMenu.Tags null -> {secondaryMenu.Tags == null}");
                 continue;
@@ -84,7 +87,7 @@ public class Scraper : IDisposable
 
             if (primaryMenu.Tags.Length != secondaryMenu.Tags.Length)
             {
-                SharedLogger.LogError(
+                _ownedLogger.LogError(
                     "Mismatch between primary and secondary menu, primary length is " +
                     $"{primaryMenu.Tags.Length} while secondary length is {secondaryMenu.Tags.Length}");
                 continue;
@@ -95,7 +98,7 @@ public class Scraper : IDisposable
             {
                 if (primaryDay.Items is null || secondaryDay.Items is null)
                 {
-                    SharedLogger.LogError(
+                    _ownedLogger.LogError(
                         $"primaryDay.Items is null -> {primaryDay.Items is null}," +
                         $" secondary.Items is null -> {secondaryDay.Items is null}");
                     continue;
@@ -103,7 +106,7 @@ public class Scraper : IDisposable
 
                 if (primaryDay.Items.Length != secondaryDay.Items.Length)
                 {
-                    SharedLogger.LogError(
+                    _ownedLogger.LogError(
                         "Mismatch between primary and secondary menu items length, primary length is " +
                         $"{primaryDay.Items.Length} while secondary length is {secondaryDay.Items.Length}");
                     continue;
@@ -111,7 +114,7 @@ public class Scraper : IDisposable
 
                 if (primaryDay.Timestamp != secondaryDay.Timestamp)
                 {
-                    SharedLogger.LogError(
+                    _ownedLogger.LogError(
                         $"Timestamp mismatch, {nameof(primaryDay.Timestamp)}={primaryDay.Timestamp} " +
                         $"and {nameof(secondaryDay.Timestamp)}={secondaryDay.Timestamp}");
                     continue;
@@ -121,7 +124,7 @@ public class Scraper : IDisposable
 
                 if (DateOnly.FromDateTime(DateTime.Now) > currentDay)
                 {
-                    SharedLogger.LogWarning(
+                    _ownedLogger.LogWarning(
                         $"Noticed menu from the past, today is {DateOnly.FromDateTime(DateTime.Now)} menu was from {currentDay}"
                     );
                     continue;
@@ -146,7 +149,7 @@ public class Scraper : IDisposable
                 {
                     if (primaryItem.Title is null)
                     {
-                        SharedLogger.LogError("Primary dish title is null");
+                        _ownedLogger.LogError("Primary dish title is null");
                         continue;
                     }
 
@@ -191,13 +194,13 @@ public class Scraper : IDisposable
 
                     if (secondaryItem.Beilagen is null)
                     {
-                        SharedLogger.LogWarning("Secondary item side dish is null, but primary wasn't");
+                        _ownedLogger.LogWarning("Secondary item side dish is null, but primary wasn't");
                         Debugger.Break();
                     }
 
                     if (primaryItem.Beilagen.Length != secondaryItem.Beilagen.Length)
                     {
-                        SharedLogger.LogWarning("Side dish count mismatch");
+                        _ownedLogger.LogWarning("Side dish count mismatch");
                         Debugger.Break();
                     }
 
@@ -213,9 +216,9 @@ public class Scraper : IDisposable
                 _databaseWrapper.ExecuteBatch();
             }
 
-            SharedLogger.LogInformation(
+            _ownedLogger.LogInformation(
                 $"[{Task.CurrentId}] Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
-            Task.Delay(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds), _cancellationToken).Wait();
+            Task.Delay(TimeSpan.FromSeconds(20), _cancellationToken).Wait();
         }
     }
 
@@ -239,7 +242,7 @@ public class Scraper : IDisposable
     public void Dispose()
     {
         _cancellationTokenSource.Cancel();
-        SharedLogger.LogInformation("Disposing scraper and associated data providers");
+        _ownedLogger.LogInformation("Disposing scraper and associated data providers");
         if (_primaryDataProvider is IDisposable disposableDataProvider)
             disposableDataProvider.Dispose();
 

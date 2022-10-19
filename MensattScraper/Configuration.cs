@@ -19,7 +19,9 @@ internal static class Configuration
     internal static readonly string ContentDirectory = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_CONTENT") ??
                                                        throw new ArgumentException("Content directory not set");
 
-    internal static readonly ILogger SharedLogger = new LogDelegator(
+    internal static readonly ILogger SharedLogger = CreateSimpleLogger("Shared");
+
+    internal static ILogger CreateSimpleLogger(string categoryName) => new LogDelegator(
         LoggerFactory.Create(builder =>
         {
             builder.AddSimpleConsole(options =>
@@ -27,5 +29,5 @@ internal static class Configuration
                 options.ColorBehavior = LoggerColorBehavior.Enabled;
                 options.TimestampFormat = "hh:mm:ss ";
             });
-        }).CreateLogger("Scraper"), WebhookUrl != null ? new WebhookSender() : null);
+        }).CreateLogger(categoryName), WebhookUrl != null ? new WebhookSender() : null);
 }
