@@ -16,18 +16,19 @@ public static class Program
     {
         foreach (var apiUrl in ApiUrls)
         {
-            Task.Factory.StartNew(() =>
+            new Thread(() =>
             {
                 // Creating multiple database wrappers on the same connection should be fine, as they are pooled
                 IDatabaseWrapper databaseWrapper = new NpgsqlDatabaseWrapper(DbConnection);
                 IDataProvider<Speiseplan> dataProvider = new HttpDataProvider<Speiseplan>(apiUrl);
-                var scraper = new Scraper(databaseWrapper, dataProvider);
+                var scraper = new Scraper(databaseWrapper, dataProvider,
+                    apiUrl[(apiUrl.LastIndexOf('/') + 1)..].Replace(".xml", string.Empty));
                 scraper.Initialize();
                 scraper.Scrape();
-            }, TaskCreationOptions.LongRunning);
+            }).Start();
         }
 
-        SharedLogger.LogInformation("Created all scraping tasks");
+        SharedLogger.LogInformation("Created all scraping threads");
 
         new Thread(() =>
         {

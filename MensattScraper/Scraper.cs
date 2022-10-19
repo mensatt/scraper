@@ -26,9 +26,9 @@ public class Scraper : IDisposable
 
     private readonly ILogger _ownedLogger;
 
-    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider)
+    public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider, string identifier)
     {
-        _ownedLogger = CreateSimpleLogger($"Worker-{Task.CurrentId}");
+        _ownedLogger = CreateSimpleLogger($"Worker-{identifier}");
         _databaseWrapper = databaseWrapper;
         _primaryDataProvider = primaryDataProvider;
         _xmlSerializer = new(typeof(Speiseplan));
@@ -217,8 +217,8 @@ public class Scraper : IDisposable
             }
 
             _ownedLogger.LogInformation(
-                $"[{Task.CurrentId}] Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
-            Task.Delay(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds), _cancellationToken).Wait();
+                $"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
+            Thread.Sleep(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));
         }
     }
 

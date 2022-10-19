@@ -29,5 +29,5 @@ internal static class Configuration
                 options.ColorBehavior = LoggerColorBehavior.Enabled;
                 options.TimestampFormat = "hh:mm:ss ";
             });
-        }).CreateLogger(categoryName), WebhookUrl != null ? new WebhookSender() : null);
+        }).CreateLogger(categoryName), WebhookUrl != null ? new WebhookSender(categoryName) : null);
 }

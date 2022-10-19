@@ -10,17 +10,20 @@ public class WebhookSender : ILogger
     private readonly Queue<StringContent> _messages;
     private bool _isTaskRunning;
 
-    public WebhookSender()
+    private readonly string _identifier;
+
+    public WebhookSender(string identifier)
     {
         _httpClient = new();
         _messages = new();
+        _identifier = identifier;
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
         _messages.Enqueue(new(
-            $"{{\"content\" : \"{GenerateWrap(logLevel, (Debugger.IsAttached ? "[Debug] " : string.Empty) + $"{DateTime.UtcNow.ToString("HH:mm:ss")} {logLevel}: {formatter.Invoke(state, exception)}")}\"}}",
+            $"{{\"content\" : \"{GenerateWrap(logLevel, (Debugger.IsAttached ? "[Debug] " : string.Empty) + $"{DateTime.UtcNow.ToString("HH:mm:ss")} {logLevel}: [{_identifier}]\\n{formatter.Invoke(state, exception)}")}\"}}",
             Encoding.UTF8,
             "application/json"));
         if (!_isTaskRunning)
