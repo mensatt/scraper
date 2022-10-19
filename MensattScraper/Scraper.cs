@@ -228,8 +228,6 @@ public class Scraper : IDisposable
                     _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!);
         if (dishAlias == null)
         {
-            SharedLogger.LogInformation($"Injecting confidence suggestions for {primaryDishTitle}");
-
             dishAlias = _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
                 dish);
         }
