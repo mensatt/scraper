@@ -1,45 +1,43 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace MensattScraper.Telemetry;
 
 public class WebhookSender : ILogger
 {
-    private readonly Thread _slowSenderThread;
+    private readonly HttpClient _httpClient;
     private readonly Queue<StringContent> _messages;
+    private bool _isTaskRunning;
 
     public WebhookSender()
     {
-        HttpClient httpClient = new();
+        _httpClient = new();
         _messages = new();
-
-        _slowSenderThread = new(() =>
-        {
-            while (_messages.Count != 0)
-            {
-                var currentMessage = _messages.Dequeue();
-                var postedMessage = httpClient.PostAsync(WebhookUrl, currentMessage).Result;
-                if (!postedMessage.IsSuccessStatusCode)
-                {
-                    SharedLogger.LogError(
-                        $"Could not send webhook message. StatusCode: {postedMessage.StatusCode}, Reason: {postedMessage.ReasonPhrase}, Response: {postedMessage.Content.ToString()}");
-                }
-
-                // TODO: Improve rate limit handling
-                Thread.Sleep(TimeSpan.FromMilliseconds(200));
-            }
-        });
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
         _messages.Enqueue(new(
-            $"{{\"content\" : \"{GenerateWrap(logLevel, $"{DateTime.UtcNow.ToString("HH:mm:ss")} {logLevel}: {formatter.Invoke(state, exception)}")}\"}}",
+            $"{{\"content\" : \"{GenerateWrap(logLevel, (Debugger.IsAttached ? "[Debug] " : string.Empty) + $"{DateTime.UtcNow.ToString("HH:mm:ss")} {logLevel}: {formatter.Invoke(state, exception)}")}\"}}",
             Encoding.UTF8,
             "application/json"));
-        if (!_slowSenderThread.IsAlive)
-            _slowSenderThread.Start();
+        if (!_isTaskRunning)
+        {
+            _isTaskRunning = true;
+            Task.Run(() =>
+            {
+                while (_messages.Count != 0)
+                {
+                    var currentMessage = _messages.Dequeue();
+                    _httpClient.PostAsync(WebhookUrl, currentMessage);
+                    Task.Delay(TimeSpan.FromMilliseconds(500)).Wait();
+                }
+
+                _isTaskRunning = false;
+            });
+        }
     }
 
     private static string GenerateWrap(LogLevel level, string x) => level switch
