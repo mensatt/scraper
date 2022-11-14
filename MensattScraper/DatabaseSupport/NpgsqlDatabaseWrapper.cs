@@ -277,9 +277,9 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(dayTag.Timestamp);
         _insertOccurrenceCommand.Parameters["status"].Value = status;
         var kj = Converter.FloatStringToInt(item.Kj);
-        _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 1000;
+        _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 10;
         var kcal = Converter.FloatStringToInt(item.Kcal);
-        _insertOccurrenceCommand.Parameters["kcal"].Value = kcal == null ? DBNull.Value : (int) kcal / 1000;
+        _insertOccurrenceCommand.Parameters["kcal"].Value = kcal == null ? DBNull.Value : (int) kcal / 10;
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fat"], Converter.FloatStringToInt(item.Fett));
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["saturated_fat"],
             Converter.FloatStringToInt(item.Gesfett));
