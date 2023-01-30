@@ -226,17 +226,14 @@ public class Scraper : IDisposable
     private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
     {
         var dishAlias = _databaseWrapper.ExecuteSelectDishNormalizedAliasByNameCommand(primaryDishTitle);
+        if (dishAlias is not null)
+            return (Guid) dishAlias;
+
         var dish =
             (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
                     _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!);
-        if (dishAlias == null)
-        {
-            dishAlias = _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle,
-                dish);
-        }
-
         // Same as dish
-        return (Guid) dishAlias!;
+        return (Guid) _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle, dish)!;
     }
 
     public void Dispose()
