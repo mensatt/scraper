@@ -31,17 +31,5 @@ public static class Program
         }
 
         SharedLogger.LogInformation("Created all scraping threads");
-
-        new Thread(() =>
-        {
-            while (true)
-            {
-                var line = Console.ReadLine();
-                if (line is null or not "quit") continue;
-                // TODO: Proper shutdown
-                Environment.Exit(0);
-                return;
-            }
-        }).Start();
     }
 }
