@@ -24,7 +24,7 @@ public static class DatabaseMapping
             DatabaseWrapper.ConnectAndPrepare();
             RefreshDatabaseMappings();
         }
-        catch (NpgsqlException)
+        catch (Exception e) when (e is NpgsqlException or ArgumentException)
         {
             // This *should* only happen in unit tests
             DatabaseWrapper = null;
