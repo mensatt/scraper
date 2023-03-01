@@ -22,7 +22,6 @@ public class Scraper : IDisposable
     private Dictionary<DateOnly, List<Tuple<Guid, Guid>>>? _dailyOccurrences;
 
     private readonly CancellationTokenSource _cancellationTokenSource;
-    private readonly CancellationToken _cancellationToken;
 
     private readonly ILogger _ownedLogger;
 
@@ -33,8 +32,9 @@ public class Scraper : IDisposable
         _primaryDataProvider = primaryDataProvider;
         _xmlSerializer = new(typeof(Speiseplan));
         _cancellationTokenSource = new();
-        _cancellationToken = _cancellationTokenSource.Token;
-        _cancellationToken.Register(() => _ownedLogger.LogInformation("Cancelling sleep token"));
+
+        var cancellationToken = _cancellationTokenSource.Token;
+        cancellationToken.Register(() => _ownedLogger.LogInformation("Cancelling sleep token"));
 
         _secondaryDataProvider = _primaryDataProvider switch
         {
@@ -67,7 +67,6 @@ public class Scraper : IDisposable
             _ownedLogger.LogInformation("Processing new menus");
             timer.Restart();
 
-            // TODO: Evaluate the error handling should be extracted into it's own method
             if (primaryMenu is null || secondaryMenu is null)
             {
                 _ownedLogger.LogError(
@@ -157,8 +156,6 @@ public class Scraper : IDisposable
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
-                    // dailyDishes.Add(dishUuid);
-
                     var occurrenceStatus =
                         firstPullOfTheDay ? OccurrenceStatus.AWAITING_APPROVAL : OccurrenceStatus.UPDATED;
 
@@ -196,12 +193,14 @@ public class Scraper : IDisposable
                     {
                         _ownedLogger.LogWarning("Secondary item side dish is null, but primary wasn't");
                         Debugger.Break();
+                        continue;
                     }
 
                     if (primaryItem.Beilagen.Length != secondaryItem.Beilagen.Length)
                     {
                         _ownedLogger.LogWarning("Side dish count mismatch");
                         Debugger.Break();
+                        continue;
                     }
 
                     var zippedSideDishes = Converter.GetSideDishes(primaryItem.Beilagen)
@@ -222,7 +221,6 @@ public class Scraper : IDisposable
         }
     }
 
-    // TODO: Log all relevant data to prevent deleted dish_alias occurrence combinations
     private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)
     {
         var dishAlias = _databaseWrapper.ExecuteSelectDishNormalizedAliasByNameCommand(primaryDishTitle);

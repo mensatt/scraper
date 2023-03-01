@@ -20,7 +20,7 @@ public static class Converter
         if (title is null)
         {
             SharedLogger.LogWarning($"Can't extract titleElement={titleElement} out of a null title");
-            return null;
+            return string.Empty;
         }
 
 
