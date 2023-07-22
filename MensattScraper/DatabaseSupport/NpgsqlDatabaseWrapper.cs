@@ -46,6 +46,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     {
         Parameters =
         {
+            new("id", NpgsqlDbType.Uuid),
             new("name_de", NpgsqlDbType.Varchar),
             new("name_en", NpgsqlDbType.Varchar)
         }
@@ -55,10 +56,11 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     {
         Parameters =
         {
+            new("id", NpgsqlDbType.Uuid),
             new("location", NpgsqlDbType.Uuid),
             new("dish", NpgsqlDbType.Uuid),
             new("date", NpgsqlDbType.Date),
-            new("status", NpgsqlDbType.Unknown),
+            new("status", NpgsqlDbType.Varchar),
             new("kj", NpgsqlDbType.Integer),
             new("kcal", NpgsqlDbType.Integer),
             new("fat", NpgsqlDbType.Integer),
@@ -89,7 +91,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         {
             Parameters =
             {
-                new("status", NpgsqlDbType.Unknown),
+                new("status", NpgsqlDbType.Varchar),
                 new("id", NpgsqlDbType.Uuid)
             }
         };
@@ -172,8 +174,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     public void ConnectAndPrepare()
     {
         _databaseConnection.Open();
-        INpgsqlNameTranslator nameTranslator = new PostgresNameTranslator();
-        _databaseConnection.TypeMapper.MapEnum<OccurrenceStatus>("occurrence_status", nameTranslator);
 
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
                      typeof(NpgsqlDatabaseWrapper), this))
@@ -261,6 +261,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle)
     {
+        _insertDishCommand.Parameters["id"].Value = Guid.NewGuid();
         _insertDishCommand.Parameters["name_de"].Value =
             Converter.ExtractElementFromTitle(primaryTitle, Converter.TitleElement.Name);
         SetParameterToValueOrNull(_insertDishCommand.Parameters["name_en"],
@@ -272,10 +273,11 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     public Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
         OccurrenceStatus status)
     {
+        _insertOccurrenceCommand.Parameters["id"].Value = Guid.NewGuid();
         _insertOccurrenceCommand.Parameters["location"].Value = locationId;
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(dayTag.Timestamp);
-        _insertOccurrenceCommand.Parameters["status"].Value = status;
+        _insertOccurrenceCommand.Parameters["status"].Value = Enum.GetName(status);
         var kj = Converter.FloatStringToInt(item.Kj);
         _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 10;
         var kcal = Converter.FloatStringToInt(item.Kcal);
@@ -314,7 +316,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public void ExecuteUpdateOccurrenceReviewStatusByIdCommand(OccurrenceStatus status, Guid id)
     {
-        _updateOccurrenceReviewStatusByIdCommand.Parameters["status"].Value = status;
+        _updateOccurrenceReviewStatusByIdCommand.Parameters["status"].Value = Enum.GetName(status);
         _updateOccurrenceReviewStatusByIdCommand.Parameters["id"].Value = id;
         _updateOccurrenceReviewStatusByIdCommand.ExecuteNonQuery();
     }

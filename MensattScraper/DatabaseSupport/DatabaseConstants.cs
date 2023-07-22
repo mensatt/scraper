@@ -16,20 +16,20 @@ internal static class DatabaseConstants
     internal const string SelectDishAliasNormalizedDishSql = "SELECT normalized_alias_name, dish FROM dish_alias";
 
     internal const string InsertDishWithGermanNameSql =
-        "INSERT INTO dish (name_de, name_en) VALUES (@name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";
+        "INSERT INTO dish (id, name_de, name_en) VALUES (@id, @name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";
 
     internal const string InsertOccurrenceSql =
-        "INSERT INTO occurrence (location, dish, date, status, kj, kcal, fat, saturated_fat, " +
+        "INSERT INTO occurrence (id, location, dish, date, status, kj, kcal, fat, saturated_fat, " +
         "carbohydrates, sugar, fiber, protein, salt, price_student, " +
         "price_staff, price_guest) " +
-        "VALUES (@location, @dish, @date, @status, @kj, @kcal, @fat, @saturated_fat, " +
+        "VALUES (@id, @location, @dish, @date, @status, @kj, @kcal, @fat, @saturated_fat, " +
         "@carbohydrates, @sugar, @fiber, @protein, @salt, @price_student, " +
         "@price_staff, @price_guest) RETURNING id";
 
     internal const string InsertOccurrenceSideDishSql =
         "INSERT INTO occurrence_side_dishes VALUES (@occurrence, @dish)";
 
-    internal const string InsertOccurrenceTagSql = "INSERT INTO occurrence_tag VALUES (@occurrence, @tag)";
+    internal const string InsertOccurrenceTagSql = "INSERT INTO occurrence_tags VALUES (@occurrence, @tag)";
 
     internal const string InsertDishAliasSql =
         "INSERT INTO dish_alias VALUES(@alias_name, @normalized_alias_name, @dish) RETURNING dish";
