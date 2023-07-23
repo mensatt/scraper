@@ -181,7 +181,10 @@ public class Scraper : IDisposable
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
-                    foreach (var tag in Converter.ExtractSingleTagsFromTitle(primaryItem.Title))
+                    var titleTags = Converter.ExtractSingleTagsFromTitle(primaryItem.Title);
+                    var pictogramTags = Converter.ExtractTagsFromPictogram(primaryItem.Piktogramme);
+
+                    foreach (var tag in titleTags.Concat(pictogramTags).Distinct())
                     {
                         _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
                     }

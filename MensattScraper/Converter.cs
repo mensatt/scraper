@@ -118,10 +118,25 @@ public static class Converter
         return char.ToUpper(input[0]) + input[1..];
     }
 
-    public static string[] ExtractSingleTagsFromTitle(string? title) =>
+    public static IEnumerable<string> ExtractSingleTagsFromTitle(string? title) =>
         ExtractElementFromTitle(title, TitleElement.Tag).Split(',')
-            .Where(x => !string.IsNullOrEmpty(x) && DatabaseMapping.IsTagValid(x)).Select(x => x.Trim()).Distinct()
-            .ToArray();
+            .Where(x => !string.IsNullOrEmpty(x) && DatabaseMapping.IsTagValid(x)).Select(x => x.Trim()).Distinct();
+
+    // (?<=\/)([A-z]*?)(?=\.png)
+    private static readonly Regex PictogramRegex = new(@"(?<=\/)([A-z]*?)(?=\.png)");
+
+    public static IEnumerable<string> ExtractTagsFromPictogram(string? pictogram)
+        => string.IsNullOrEmpty(pictogram)
+            ? Array.Empty<string>()
+            : PictogramRegex.Matches(pictogram).Select(x => NormalizePictogramTag(x.Value.Trim().ToUpper())).Distinct();
+
+    private static string NormalizePictogramTag(string tag) =>
+        tag switch
+        {
+            "VEG" => "Veg",
+            "GF" => "Gf",
+            _ => tag
+        };
 
     public static DateOnly GetDateFromTimestamp(int timestamp)
     {
