@@ -43,31 +43,15 @@ public static class Program
 
         while (true)
         {
-            var line = Console.ReadLine();
-            switch (line)
+
+            Console.WriteLine("Printing status...");
+            lock (workers)
             {
-                case "exit":
-                    Console.WriteLine("Exiting...");
-                    lock (workers)
-                    {
-                        foreach (var worker in workers)
-                            worker.Dispose();
-                    }
-
-                    return;
-                case "status":
-                    Console.WriteLine("Printing status...");
-                    lock (workers)
-                    {
-                        foreach (var scraper in workers)
-                            scraper.PrintTelemetry();
-                    }
-
-                    break;
-                default:
-                    Console.WriteLine("Unknown command");
-                    break;
+                foreach (var scraper in workers)
+                    scraper.PrintTelemetry();
             }
+
+            Thread.Sleep(TimeSpan.FromMinutes(5));
         }
     }
 }
