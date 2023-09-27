@@ -8,7 +8,7 @@ public class HttpDataProvider<T> : IDataProvider<T>, IDisposable
 
     internal string ApiUrl { get; }
 
-    public HttpDataProvider(string dataUrl, uint delay = 1800)
+    public HttpDataProvider(string dataUrl, uint delay)
     {
         ApiUrl = dataUrl;
         _client = new();

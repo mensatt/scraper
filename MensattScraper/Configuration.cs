@@ -19,6 +19,9 @@ internal static class Configuration
     internal static readonly string ContentDirectory = Environment.GetEnvironmentVariable("MENSATT_SCRAPER_CONTENT") ??
                                                        throw new ArgumentException("Content directory not set");
 
+    internal static readonly uint WorkerFetchDelay =
+        uint.Parse(Environment.GetEnvironmentVariable("MENSATT_SCRAPER_DELAY") ?? "450"); // 7.5 minutes
+
     internal static readonly ILogger SharedLogger = CreateSimpleLogger("Shared");
 
     internal static ILogger CreateSimpleLogger(string categoryName) => new LogDelegator(

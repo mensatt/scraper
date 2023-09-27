@@ -39,10 +39,8 @@ public class Scraper : IDisposable
         _secondaryDataProvider = _primaryDataProvider switch
         {
             HttpDataProvider<Speiseplan> httpDataProvider => new HttpDataProvider<Speiseplan>(
-                httpDataProvider.ApiUrl.Replace("xml/", "xml/en/")),
-            // TODO: Document this
-            FileDataProvider<Speiseplan> fileDataProvider => new FileDataProvider<Speiseplan>(fileDataProvider.Path +
-                "_en"),
+                httpDataProvider.ApiUrl.Replace("xml/", "xml/en/"), _primaryDataProvider.GetDataDelayInSeconds),
+            FileDataProvider<Speiseplan> fileDataProvider => throw new("FileDataProvider is not supported"),
             _ => throw new("Unknown data provider")
         };
     }
@@ -67,12 +65,16 @@ public class Scraper : IDisposable
             _ownedLogger.LogInformation("Processing new menus");
             timer.Restart();
 
+            #region Menu checks
+
             if (primaryMenu is null || secondaryMenu is null)
             {
                 _ownedLogger.LogError(
                     $"primaryMenu is null -> {primaryMenu == null}," +
                     $" secondaryMenu is null -> {secondaryMenu == null}");
-                continue;
+                // We cannot safely continue here, as the two streams could be out of sync.
+                // In lack of a better solution, we crash the whole process
+                Environment.Exit(1);
             }
 
             // Happens on holidays, where the xml is provided but empty
@@ -92,9 +94,15 @@ public class Scraper : IDisposable
                 continue;
             }
 
+            #endregion
+
+
             var zippedDays = primaryMenu.Tags.Zip(secondaryMenu.Tags);
             foreach (var (primaryDay, secondaryDay) in zippedDays)
             {
+
+                #region Day and item checks
+
                 if (primaryDay.Items is null || secondaryDay.Items is null)
                 {
                     _ownedLogger.LogError(
@@ -129,6 +137,8 @@ public class Scraper : IDisposable
                     continue;
                 }
 
+                #endregion
+
                 var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
                 bool firstPullOfTheDay;
                 if (!_dailyOccurrences.ContainsKey(currentDay))
@@ -152,7 +162,10 @@ public class Scraper : IDisposable
                         continue;
                     }
 
-                    // TODO: Check item consistency, override ==
+                    if (primaryItem != secondaryItem)
+                    {
+                        _ownedLogger.LogWarning($"Noticed item consistency mismatch: {primaryItem.Title} vs {secondaryItem.Title}");
+                    }
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
@@ -165,7 +178,10 @@ public class Scraper : IDisposable
 
                         // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
+                        {
+                            _ownedLogger.LogInformation($"Would update {primaryItem.Title}");
                             continue; // Update in the future
+                        }
 
                         // If it is in the far future, the old one will be replaced by this
                         if (isInFarFuture)
@@ -189,22 +205,24 @@ public class Scraper : IDisposable
                         _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
                     }
 
+                    #region Side dish checks
+
                     if (primaryItem.Beilagen is null)
                         continue;
 
                     if (secondaryItem.Beilagen is null)
                     {
                         _ownedLogger.LogWarning("Secondary item side dish is null, but primary wasn't");
-                        Debugger.Break();
                         continue;
                     }
 
                     if (primaryItem.Beilagen.Length != secondaryItem.Beilagen.Length)
                     {
                         _ownedLogger.LogWarning("Side dish count mismatch");
-                        Debugger.Break();
                         continue;
                     }
+
+                    #endregion
 
                     var zippedSideDishes = Converter.GetSideDishes(primaryItem.Beilagen)
                         .Zip(Converter.GetSideDishes(secondaryItem.Beilagen));

@@ -60,4 +60,57 @@ public class Item
 
     [XmlElement(ElementName = "foto")]
     public string? Foto { get; set; }
+
+    protected bool Equals(Item other)
+    {
+        return Category == other.Category && Title == other.Title && Description == other.Description &&
+               Beilagen == other.Beilagen && Preis1 == other.Preis1 && Preis2 == other.Preis2 &&
+               Preis3 == other.Preis3 && Einheit == other.Einheit && Piktogramme == other.Piktogramme &&
+               Kj == other.Kj && Kcal == other.Kcal && Fett == other.Fett && Gesfett == other.Gesfett &&
+               Kh == other.Kh && Zucker == other.Zucker && Ballaststoffe == other.Ballaststoffe &&
+               Eiweiss == other.Eiweiss && Salz == other.Salz && Foto == other.Foto;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        return obj.GetType() == this.GetType() && Equals((Item) obj);
+    }
+
+    public override int GetHashCode()
+    {
+        // TODO: Check if writeable properties are a problem here
+        var hashCode = new HashCode();
+        hashCode.Add(Category);
+        hashCode.Add(Title);
+        hashCode.Add(Description);
+        hashCode.Add(Beilagen);
+        hashCode.Add(Preis1);
+        hashCode.Add(Preis2);
+        hashCode.Add(Preis3);
+        hashCode.Add(Einheit);
+        hashCode.Add(Piktogramme);
+        hashCode.Add(Kj);
+        hashCode.Add(Kcal);
+        hashCode.Add(Fett);
+        hashCode.Add(Gesfett);
+        hashCode.Add(Kh);
+        hashCode.Add(Zucker);
+        hashCode.Add(Ballaststoffe);
+        hashCode.Add(Eiweiss);
+        hashCode.Add(Salz);
+        hashCode.Add(Foto);
+        return hashCode.ToHashCode();
+    }
+
+    public static bool operator ==(Item? left, Item? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(Item? left, Item? right)
+    {
+        return !Equals(left, right);
+    }
 }
