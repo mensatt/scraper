@@ -69,8 +69,6 @@ public class Scraper : IDisposable
 
     public void Scrape()
     {
-        var firstFetch = true;
-
         if (_dailyOccurrences is null)
             throw new NullReferenceException("_dailyOccurrences must not be null");
 
@@ -194,14 +192,14 @@ public class Scraper : IDisposable
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
-                    if (!firstPullOfTheDay && !firstFetch)
+                    if (!firstPullOfTheDay)
                     {
                         var savedDishOccurrence = _dailyOccurrences[currentDay].Find(x => x.Item1 == dishUuid);
 
                         // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
                         {
-                            // _telemetry.PotentialUpdates++;
+                            _telemetry.PotentialUpdates++;
                             // _ownedLogger.LogInformation($"Would update {primaryItem.Title}");
                             continue; // Update in the future
                         }
@@ -259,8 +257,6 @@ public class Scraper : IDisposable
 
                 _databaseWrapper.ExecuteBatch();
             }
-
-            firstFetch = false;
 
             _ownedLogger.LogInformation(
                 $"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
