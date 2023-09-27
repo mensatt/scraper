@@ -8,18 +8,15 @@ public class HttpDataProvider<T> : IDataProvider<T>, IDisposable
 
     internal string ApiUrl { get; }
 
-    public HttpDataProvider(string dataUrl, uint delay)
+    public string CopyLocation { get; }
+
+    public HttpDataProvider(string dataUrl, uint delay, string copyLocation)
     {
         ApiUrl = dataUrl;
         _client = new();
         GetDataDelayInSeconds = delay;
+        CopyLocation = copyLocation;
     }
-
-
-    // TODO: Document this
-    public string CopyLocation => ApiUrl.Contains("/en/")
-        ? Path.Combine(ContentDirectory, "content_en")
-        : Path.Combine(ContentDirectory, "content");
 
     public uint GetDataDelayInSeconds { get; }
 

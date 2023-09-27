@@ -4,6 +4,7 @@ using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
+using MensattScraper.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace MensattScraper;
@@ -25,6 +26,10 @@ public class Scraper : IDisposable
 
     private readonly ILogger _ownedLogger;
 
+    private readonly WorkerTelemetry _telemetry;
+
+    private readonly string _identifier;
+
     public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider, string identifier)
     {
         _ownedLogger = CreateSimpleLogger($"Worker-{identifier}");
@@ -33,14 +38,19 @@ public class Scraper : IDisposable
         _xmlSerializer = new(typeof(Speiseplan));
         _cancellationTokenSource = new();
 
+        _identifier = identifier;
+
+        _telemetry = new();
+
         var cancellationToken = _cancellationTokenSource.Token;
         cancellationToken.Register(() => _ownedLogger.LogInformation("Cancelling sleep token"));
 
         _secondaryDataProvider = _primaryDataProvider switch
         {
             HttpDataProvider<Speiseplan> httpDataProvider => new HttpDataProvider<Speiseplan>(
-                httpDataProvider.ApiUrl.Replace("xml/", "xml/en/"), _primaryDataProvider.GetDataDelayInSeconds),
-            FileDataProvider<Speiseplan> fileDataProvider => throw new("FileDataProvider is not supported"),
+                httpDataProvider.ApiUrl.Replace("xml/", "xml/en/"), _primaryDataProvider.GetDataDelayInSeconds,
+                Path.Combine(ContentDirectory, $"content_en_{identifier}")),
+            FileDataProvider<Speiseplan> => throw new("FileDataProvider is not supported"),
             _ => throw new("Unknown data provider")
         };
     }
@@ -51,8 +61,16 @@ public class Scraper : IDisposable
         _dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateCommand();
     }
 
+    public void PrintTelemetry()
+    {
+        Console.WriteLine($"Telemetry for {_identifier}:");
+        Console.WriteLine(_telemetry.ToString());
+    }
+
     public void Scrape()
     {
+        var firstFetch = true;
+
         if (_dailyOccurrences is null)
             throw new NullReferenceException("_dailyOccurrences must not be null");
 
@@ -64,6 +82,8 @@ public class Scraper : IDisposable
         {
             _ownedLogger.LogInformation("Processing new menus");
             timer.Restart();
+
+            _telemetry.TotalFetches++;
 
             #region Menu checks
 
@@ -100,6 +120,8 @@ public class Scraper : IDisposable
             var zippedDays = primaryMenu.Tags.Zip(secondaryMenu.Tags);
             foreach (var (primaryDay, secondaryDay) in zippedDays)
             {
+
+                _telemetry.TotalDays++;
 
                 #region Day and item checks
 
@@ -139,8 +161,8 @@ public class Scraper : IDisposable
 
                 #endregion
 
-                var isInFarFuture = DateOnly.FromDateTime(DateTime.Now).AddDays(2) < currentDay;
                 bool firstPullOfTheDay;
+
                 if (!_dailyOccurrences.ContainsKey(currentDay))
                 {
                     _dailyOccurrences.Add(currentDay, new());
@@ -156,6 +178,9 @@ public class Scraper : IDisposable
                 var zippedItems = primaryDay.Items.Zip(secondaryDay.Items);
                 foreach (var (primaryItem, secondaryItem) in zippedItems)
                 {
+
+                    _telemetry.TotalItems++;
+
                     if (primaryItem.Title is null)
                     {
                         _ownedLogger.LogError("Primary dish title is null");
@@ -169,31 +194,28 @@ public class Scraper : IDisposable
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
-                    var occurrenceStatus =
-                        firstPullOfTheDay ? OccurrenceStatus.AWAITING_APPROVAL : OccurrenceStatus.UPDATED;
-
-                    if (!firstPullOfTheDay)
+                    if (!firstPullOfTheDay && !firstFetch)
                     {
                         var savedDishOccurrence = _dailyOccurrences[currentDay].Find(x => x.Item1 == dishUuid);
 
                         // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
                         {
-                            _ownedLogger.LogInformation($"Would update {primaryItem.Title}");
+                            // _telemetry.PotentialUpdates++;
+                            // _ownedLogger.LogInformation($"Would update {primaryItem.Title}");
                             continue; // Update in the future
                         }
 
-                        // If it is in the far future, the old one will be replaced by this
-                        if (isInFarFuture)
-                            occurrenceStatus = OccurrenceStatus.AWAITING_APPROVAL;
                     }
+
+                    _telemetry.TotalNewOccurrenceCount++;
 
                     var occurrenceUuid =
                         (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(
                             DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId), primaryDay,
                             primaryItem,
                             dishUuid,
-                            occurrenceStatus)!;
+                            OccurrenceStatus.AWAITING_APPROVAL)!;
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
@@ -202,6 +224,7 @@ public class Scraper : IDisposable
 
                     foreach (var tag in titleTags.Concat(pictogramTags).Distinct())
                     {
+                        _telemetry.TotalOccurrenceTagCount++;
                         _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
                     }
 
@@ -228,6 +251,7 @@ public class Scraper : IDisposable
                         .Zip(Converter.GetSideDishes(secondaryItem.Beilagen));
                     foreach (var (primarySideDish, secondarySideDish) in zippedSideDishes)
                     {
+                        _telemetry.TotalSideDishCount++;
                         var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish);
                         _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
                     }
@@ -236,9 +260,13 @@ public class Scraper : IDisposable
                 _databaseWrapper.ExecuteBatch();
             }
 
+            firstFetch = false;
+
             _ownedLogger.LogInformation(
                 $"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
-            Thread.Sleep(TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));
+            _telemetry.AccumulatedScrapeTimeMs += (uint) timer.ElapsedMilliseconds;
+            _cancellationTokenSource.Token.WaitHandle.WaitOne(
+                TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));
         }
     }
 
@@ -246,11 +274,24 @@ public class Scraper : IDisposable
     {
         var dishAlias = _databaseWrapper.ExecuteSelectDishNormalizedAliasByNameCommand(primaryDishTitle);
         if (dishAlias is not null)
+        {
+            _telemetry.TotalExistingDishAliasCount++;
             return (Guid) dishAlias;
+        }
+
+        var guid = _databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle);
+        if (guid == null)
+        {
+            _telemetry.TotalNewDishCount++;
+            guid = _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!;
+        }
+        else
+        {
+            _telemetry.TotalFoundDishCount++;
+        }
 
         var dish =
-            (Guid) (_databaseWrapper.ExecuteSelectDishByGermanNameCommand(primaryDishTitle) ??
-                    _databaseWrapper.ExecuteInsertDishCommand(primaryDishTitle, secondaryDishTitle)!);
+            (Guid) guid;
         // Same as dish
         return (Guid) _databaseWrapper.ExecuteInsertDishAliasCommand(primaryDishTitle, dish)!;
     }
@@ -258,6 +299,8 @@ public class Scraper : IDisposable
     public void Dispose()
     {
         _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
+
         _ownedLogger.LogInformation("Disposing scraper and associated data providers");
         if (_primaryDataProvider is IDisposable disposableDataProvider)
             disposableDataProvider.Dispose();

@@ -63,8 +63,8 @@ public class Item
 
     protected bool Equals(Item other)
     {
-        return Category == other.Category && Title == other.Title && Description == other.Description &&
-               Beilagen == other.Beilagen && Preis1 == other.Preis1 && Preis2 == other.Preis2 &&
+        // NOTE: Every part that could possible be translated is *not* included in the comparison
+        return Category == other.Category && Preis1 == other.Preis1 && Preis2 == other.Preis2 &&
                Preis3 == other.Preis3 && Einheit == other.Einheit && Piktogramme == other.Piktogramme &&
                Kj == other.Kj && Kcal == other.Kcal && Fett == other.Fett && Gesfett == other.Gesfett &&
                Kh == other.Kh && Zucker == other.Zucker && Ballaststoffe == other.Ballaststoffe &&
@@ -83,9 +83,6 @@ public class Item
         // TODO: Check if writeable properties are a problem here
         var hashCode = new HashCode();
         hashCode.Add(Category);
-        hashCode.Add(Title);
-        hashCode.Add(Description);
-        hashCode.Add(Beilagen);
         hashCode.Add(Preis1);
         hashCode.Add(Preis2);
         hashCode.Add(Preis3);
