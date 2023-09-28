@@ -31,8 +31,14 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             }
         };
 
-    private readonly NpgsqlCommand _selectOccurrenceIdNameDateCommand =
-        new(DatabaseConstants.SelectOccurrenceIdNameDateSql);
+    private readonly NpgsqlCommand _selectOccurrenceIdNameDateByLocationCommand =
+        new(DatabaseConstants.SelectOccurrenceIdNameDateByLocationSql)
+        {
+            Parameters =
+            {
+                new("location", NpgsqlDbType.Uuid)
+            }
+        };
 
     private readonly NpgsqlCommand _selectLocationIdNameLocationIdCommand =
         new(DatabaseConstants.SelectLocationIdNameLocationIdSql);
@@ -214,11 +220,12 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return (Guid?) _selectDishByAliasNameCommand.ExecuteScalar();
     }
 
-    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateCommand()
+    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(Guid locationId)
     {
         var dateMapping = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
 
-        using var reader = _selectOccurrenceIdNameDateCommand.ExecuteReader();
+        _selectOccurrenceIdNameDateByLocationCommand.Parameters["location"].Value = locationId;
+        using var reader = _selectOccurrenceIdNameDateByLocationCommand.ExecuteReader();
         while (reader.Read())
         {
             var occurrenceDate = DateOnly.FromDateTime(reader.GetDateTime("date"));

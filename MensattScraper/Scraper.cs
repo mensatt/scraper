@@ -30,6 +30,17 @@ public class Scraper : IDisposable
 
     private readonly string _identifier;
 
+    // TODO: Replace
+    private static Guid identifierToGuid(string id)
+    {
+        return id switch
+        {
+            "mensa-sued" => Guid.Parse("eddfa64d-5f21-4515-97d4-d45e49168116"),
+            "mensa-lmp" => Guid.Parse("89812062-d3e6-4b2e-abe8-bd8d561aebae"),
+            _ => throw new NotImplementedException()
+        };
+    }
+
     public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider, string identifier)
     {
         _ownedLogger = CreateSimpleLogger($"Worker-{identifier}");
@@ -58,7 +69,7 @@ public class Scraper : IDisposable
     public void Initialize()
     {
         _databaseWrapper.ConnectAndPrepare();
-        _dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateCommand();
+        _dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateByLocationCommand(identifierToGuid(_identifier));
     }
 
     public void PrintTelemetry()

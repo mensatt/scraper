@@ -12,7 +12,7 @@ public interface IDatabaseWrapper
     void AddInsertOccurrenceSideDishCommandToBatch(Guid occurrence, Guid sideDish);
     Guid? ExecuteSelectDishByGermanNameCommand(string? name);
     Guid? ExecuteSelectDishNormalizedAliasByNameCommand(string? name);
-    Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateCommand();
+    Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(Guid locationId);
     List<Location> ExecuteSelectIdNameLocationIdCommand();
     List<string> ExecuteSelectTagAllCommand();
     Dictionary<string, Guid> ExecuteSelectDishAliasesNormalizedDishCommand();
