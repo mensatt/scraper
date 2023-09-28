@@ -120,7 +120,8 @@ public static class Converter
 
     public static IEnumerable<string> ExtractSingleTagsFromTitle(string? title) =>
         ExtractElementFromTitle(title, TitleElement.Tag).Split(',')
-            .Where(x => !string.IsNullOrEmpty(x) && DatabaseMapping.IsTagValid(x)).Select(x => x.Trim()).Distinct();
+            .Where(x => !string.IsNullOrEmpty(x) && DatabaseMapping.IsTagValid(x)).Select(x => NormalizeTag(x.Trim()))
+            .Distinct();
 
     // (?<=\/)([A-z]*?)(?=\.png)
     private static readonly Regex PictogramRegex = new(@"(?<=\/)([A-z]*?)(?=\.png)");
@@ -128,13 +129,14 @@ public static class Converter
     public static IEnumerable<string> ExtractTagsFromPictogram(string? pictogram)
         => string.IsNullOrEmpty(pictogram)
             ? Array.Empty<string>()
-            : PictogramRegex.Matches(pictogram).Select(x => NormalizePictogramTag(x.Value.Trim().ToUpper())).Distinct();
+            : PictogramRegex.Matches(pictogram).Select(x => NormalizeTag(x.Value.Trim().ToUpper())).Distinct();
 
-    private static string NormalizePictogramTag(string tag) =>
+    private static string NormalizeTag(string tag) =>
         tag switch
         {
             "VEG" => "Veg",
             "GF" => "Gf",
+            "Fi" => "F",
             _ => tag
         };
 
