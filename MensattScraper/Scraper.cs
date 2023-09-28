@@ -30,17 +30,6 @@ public class Scraper : IDisposable
 
     private readonly string _identifier;
 
-    // TODO: Replace
-    private static Guid identifierToGuid(string id)
-    {
-        return id switch
-        {
-            "mensa-sued" => Guid.Parse("eddfa64d-5f21-4515-97d4-d45e49168116"),
-            "mensa-lmp" => Guid.Parse("89812062-d3e6-4b2e-abe8-bd8d561aebae"),
-            _ => throw new NotImplementedException()
-        };
-    }
-
     public Scraper(IDatabaseWrapper databaseWrapper, IDataProvider<Speiseplan> primaryDataProvider, string identifier)
     {
         _ownedLogger = CreateSimpleLogger($"Worker-{identifier}");
@@ -69,7 +58,6 @@ public class Scraper : IDisposable
     public void Initialize()
     {
         _databaseWrapper.ConnectAndPrepare();
-        _dailyOccurrences = _databaseWrapper.ExecuteSelectOccurrenceIdNameDateByLocationCommand(identifierToGuid(_identifier));
     }
 
     public void PrintTelemetry()
@@ -80,9 +68,6 @@ public class Scraper : IDisposable
 
     public void Scrape()
     {
-        if (_dailyOccurrences is null)
-            throw new NullReferenceException("_dailyOccurrences must not be null");
-
         var timer = new Stopwatch();
 
         var zippedMenus = _primaryDataProvider.RetrieveUnderlying(_xmlSerializer)
@@ -126,10 +111,21 @@ public class Scraper : IDisposable
             #endregion
 
 
+            // We fetch the first daily occurrences here, because we have access to this worker's location
+            _dailyOccurrences ??=
+                _databaseWrapper.ExecuteSelectOccurrenceIdNameDateByLocationCommand(
+                    DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId));
+
+            // Remove all occurrences that are longer than a week old
+            var lastWeek = DateOnly.FromDateTime(DateTime.Now.AddDays(-7));
+            foreach (var (date, _) in _dailyOccurrences.Where(x => x.Key >= lastWeek))
+            {
+                _dailyOccurrences.Remove(date);
+            }
+
             var zippedDays = primaryMenu.Tags.Zip(secondaryMenu.Tags);
             foreach (var (primaryDay, secondaryDay) in zippedDays)
             {
-
                 _telemetry.TotalDays++;
 
                 #region Day and item checks
@@ -187,7 +183,6 @@ public class Scraper : IDisposable
                 var zippedItems = primaryDay.Items.Zip(secondaryDay.Items);
                 foreach (var (primaryItem, secondaryItem) in zippedItems)
                 {
-
                     _telemetry.TotalItems++;
 
                     if (primaryItem.Title is null)
@@ -198,7 +193,8 @@ public class Scraper : IDisposable
 
                     if (primaryItem != secondaryItem)
                     {
-                        _ownedLogger.LogWarning($"Noticed item consistency mismatch: {primaryItem.Title} vs {secondaryItem.Title}");
+                        _ownedLogger.LogWarning(
+                            $"Noticed item consistency mismatch: {primaryItem.Title} vs {secondaryItem.Title}");
                     }
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
@@ -214,7 +210,6 @@ public class Scraper : IDisposable
                             // _ownedLogger.LogInformation($"Would update {primaryItem.Title}");
                             continue; // Update in the future
                         }
-
                     }
 
                     _telemetry.TotalNewOccurrenceCount++;
