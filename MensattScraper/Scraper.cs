@@ -5,6 +5,7 @@ using MensattScraper.DataIngest;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
 using MensattScraper.Telemetry;
+using MensattScraper.Util;
 using Microsoft.Extensions.Logging;
 
 namespace MensattScraper;
@@ -118,10 +119,7 @@ public class Scraper : IDisposable
 
             // Remove all occurrences that are longer than a week old
             var lastWeek = DateOnly.FromDateTime(DateTime.Now.AddDays(-7));
-            foreach (var (date, _) in _dailyOccurrences.Where(x => x.Key >= lastWeek))
-            {
-                _dailyOccurrences.Remove(date);
-            }
+            _dailyOccurrences.RemoveAllByKey(date =>  date < lastWeek);
 
             var zippedDays = primaryMenu.Tags.Zip(secondaryMenu.Tags);
             foreach (var (primaryDay, secondaryDay) in zippedDays)
@@ -220,6 +218,8 @@ public class Scraper : IDisposable
                             primaryItem,
                             dishUuid,
                             OccurrenceStatus.AWAITING_APPROVAL)!;
+
+                    Console.WriteLine($"ADD: {occurrenceUuid}");
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
