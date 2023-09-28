@@ -119,7 +119,7 @@ public class Scraper : IDisposable
 
             // Remove all occurrences that are longer than a week old
             var lastWeek = DateOnly.FromDateTime(DateTime.Now.AddDays(-7));
-            _dailyOccurrences.RemoveAllByKey(date =>  date < lastWeek);
+            _dailyOccurrences.RemoveAllByKey(date => date < lastWeek);
 
             var zippedDays = primaryMenu.Tags.Zip(secondaryMenu.Tags);
             foreach (var (primaryDay, secondaryDay) in zippedDays)
@@ -216,8 +216,7 @@ public class Scraper : IDisposable
                         (Guid) _databaseWrapper.ExecuteInsertOccurrenceCommand(
                             DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId), primaryDay,
                             primaryItem,
-                            dishUuid,
-                            OccurrenceStatus.AWAITING_APPROVAL)!;
+                            dishUuid)!;
 
                     Console.WriteLine($"ADD: {occurrenceUuid}");
 

@@ -7,7 +7,8 @@ internal static class DatabaseConstants
     internal const string SelectDishIdByNormalizedAliasNameSql =
         "SELECT dish FROM dish_alias WHERE normalized_alias_name=@normalized_alias_name";
 
-    internal const string SelectOccurrenceIdNameDateByLocationSql = "SELECT id, dish, date FROM occurrence WHERE location=@location";
+    internal const string SelectOccurrenceIdNameDateByLocationSql =
+        "SELECT id, dish, date FROM occurrence WHERE location=@location";
 
     internal const string SelectLocationIdNameLocationIdSql = "SELECT id, name, external_id FROM location";
 
@@ -19,10 +20,10 @@ internal static class DatabaseConstants
         "INSERT INTO dish (id, name_de, name_en) VALUES (@id, @name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";
 
     internal const string InsertOccurrenceSql =
-        "INSERT INTO occurrence (id, location, dish, date, status, kj, kcal, fat, saturated_fat, " +
+        "INSERT INTO occurrence (id, location, dish, date, kj, kcal, fat, saturated_fat, " +
         "carbohydrates, sugar, fiber, protein, salt, price_student, " +
         "price_staff, price_guest) " +
-        "VALUES (@id, @location, @dish, @date, @status, @kj, @kcal, @fat, @saturated_fat, " +
+        "VALUES (@id, @location, @dish, @date, @kj, @kcal, @fat, @saturated_fat, " +
         "@carbohydrates, @sugar, @fiber, @protein, @salt, @price_student, " +
         "@price_staff, @price_guest) RETURNING id";
 
@@ -33,20 +34,4 @@ internal static class DatabaseConstants
 
     internal const string InsertDishAliasSql =
         "INSERT INTO dish_alias VALUES(@alias_name, @normalized_alias_name, @dish) RETURNING dish";
-
-    internal const string UpdateOccurrenceReviewStatusByIdSql =
-        "UPDATE occurrence SET status = @status WHERE id=@id";
-
-    internal const string DeleteOccurrenceByIdSql = "DELETE FROM occurrence WHERE id=@id";
-
-    #region Confidence Suggestion Support
-
-    internal const string UpdateOccurrenceDishByIdSql = "UPDATE occurrence SET dish = @dish WHERE id=@id";
-
-    internal const string UpdateDishAliasDishByAliasNameSql =
-        "UPDATE dish_alias SET dish = @dish WHERE alias_name=@alias_name";
-
-    internal const string DeleteDishByIdSql = "DELETE FROM dish WHERE id=@id";
-
-    #endregion
 }

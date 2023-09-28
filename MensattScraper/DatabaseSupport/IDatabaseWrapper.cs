@@ -19,20 +19,9 @@ public interface IDatabaseWrapper
 
     Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle);
 
-    Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
-        OccurrenceStatus status);
+    Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish);
 
     Guid? ExecuteInsertDishAliasCommand(string? dishName, Guid dish);
-
-    void ExecuteUpdateOccurrenceReviewStatusByIdCommand(OccurrenceStatus status, Guid id);
-
-    void ExecuteUpdateOccurrenceDishByIdCommand(Guid dish, Guid id);
-
-    void ExecuteUpdateDishAliasDishByAliasNameCommand(Guid dish, string aliasName);
-
-    void ExecuteDeleteDishByIdCommand(Guid id);
-
-    void ExecuteDeleteOccurrenceByIdCommand(Guid id);
 
     void Dispose();
 }

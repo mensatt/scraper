@@ -66,7 +66,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             new("location", NpgsqlDbType.Uuid),
             new("dish", NpgsqlDbType.Uuid),
             new("date", NpgsqlDbType.Date),
-            new("status", NpgsqlDbType.Varchar),
             new("kj", NpgsqlDbType.Integer),
             new("kcal", NpgsqlDbType.Integer),
             new("fat", NpgsqlDbType.Integer),
@@ -92,23 +91,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         }
     };
 
-    private readonly NpgsqlCommand _updateOccurrenceReviewStatusByIdCommand =
-        new(DatabaseConstants.UpdateOccurrenceReviewStatusByIdSql)
-        {
-            Parameters =
-            {
-                new("status", NpgsqlDbType.Varchar),
-                new("id", NpgsqlDbType.Uuid)
-            }
-        };
-
-    private readonly NpgsqlCommand _deleteOccurrenceCommand = new(DatabaseConstants.DeleteOccurrenceByIdSql)
-    {
-        Parameters =
-        {
-            new("id", NpgsqlDbType.Uuid)
-        }
-    };
 
     private readonly NpgsqlBatch _commandBatch = new();
 
@@ -131,37 +113,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
                 new("dish", NpgsqlDbType.Uuid)
             }
         };
-
-    #endregion
-
-    #region Confidence matching support
-
-    private readonly NpgsqlCommand _updateOccurrenceDishByIdCommand = new(DatabaseConstants.UpdateOccurrenceDishByIdSql)
-    {
-        Parameters =
-        {
-            new("dish", NpgsqlDbType.Uuid),
-            new("id", NpgsqlDbType.Uuid)
-        }
-    };
-
-    private readonly NpgsqlCommand _updateDishAliasDishByAliasNameCommand =
-        new(DatabaseConstants.UpdateDishAliasDishByAliasNameSql)
-        {
-            Parameters =
-            {
-                new("dish", NpgsqlDbType.Uuid),
-                new("alias_name", NpgsqlDbType.Varchar)
-            }
-        };
-
-    private readonly NpgsqlCommand _deleteDishByIdCommand = new(DatabaseConstants.DeleteDishByIdSql)
-    {
-        Parameters =
-        {
-            new("id", NpgsqlDbType.Uuid)
-        }
-    };
 
     #endregion
 
@@ -220,7 +171,8 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return (Guid?) _selectDishByAliasNameCommand.ExecuteScalar();
     }
 
-    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(Guid locationId)
+    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(
+        Guid locationId)
     {
         var dateMapping = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
 
@@ -277,14 +229,12 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     }
 
     // TODO: Use timestamp directly, instead of passing DayTag
-    public Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish,
-        OccurrenceStatus status)
+    public Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish)
     {
         _insertOccurrenceCommand.Parameters["id"].Value = Guid.NewGuid();
         _insertOccurrenceCommand.Parameters["location"].Value = locationId;
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(dayTag.Timestamp);
-        _insertOccurrenceCommand.Parameters["status"].Value = Enum.GetName(status);
         var kj = Converter.FloatStringToInt(item.Kj);
         _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 10;
         var kcal = Converter.FloatStringToInt(item.Kcal);
@@ -319,39 +269,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _insertDishAliasCommand.Parameters["normalized_alias_name"].Value = Converter.SanitizeString(extractedDishName);
         _insertDishAliasCommand.Parameters["dish"].Value = dish;
         return (Guid?) _insertDishAliasCommand.ExecuteScalar();
-    }
-
-    public void ExecuteUpdateOccurrenceReviewStatusByIdCommand(OccurrenceStatus status, Guid id)
-    {
-        _updateOccurrenceReviewStatusByIdCommand.Parameters["status"].Value = Enum.GetName(status);
-        _updateOccurrenceReviewStatusByIdCommand.Parameters["id"].Value = id;
-        _updateOccurrenceReviewStatusByIdCommand.ExecuteNonQuery();
-    }
-
-    public void ExecuteUpdateOccurrenceDishByIdCommand(Guid dish, Guid id)
-    {
-        _updateOccurrenceDishByIdCommand.Parameters["dish"].Value = dish;
-        _updateOccurrenceDishByIdCommand.Parameters["id"].Value = id;
-        _updateOccurrenceDishByIdCommand.ExecuteNonQuery();
-    }
-
-    public void ExecuteUpdateDishAliasDishByAliasNameCommand(Guid dish, string aliasName)
-    {
-        _updateDishAliasDishByAliasNameCommand.Parameters["dish"].Value = dish;
-        _updateDishAliasDishByAliasNameCommand.Parameters["alias_name"].Value = aliasName;
-        _updateDishAliasDishByAliasNameCommand.ExecuteNonQuery();
-    }
-
-    public void ExecuteDeleteOccurrenceByIdCommand(Guid id)
-    {
-        _deleteOccurrenceCommand.Parameters["id"].Value = id;
-        _deleteOccurrenceCommand.ExecuteNonQuery();
-    }
-
-    public void ExecuteDeleteDishByIdCommand(Guid id)
-    {
-        _deleteDishByIdCommand.Parameters["id"].Value = id;
-        _deleteDishByIdCommand.ExecuteNonQuery();
     }
 
     private static void SetParameterToValueOrNull(IDataParameter param, string? value)

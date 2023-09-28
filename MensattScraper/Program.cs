@@ -44,7 +44,6 @@ public static class Program
         while (true)
         {
 
-            Console.WriteLine("Printing status...");
             lock (workers)
             {
                 foreach (var scraper in workers)
