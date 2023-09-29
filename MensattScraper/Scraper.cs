@@ -274,7 +274,7 @@ public class Scraper : IDisposable
                     _ownedLogger.LogDebug($"REMOVE: {occId}");
                     _telemetry.TotalOccurrenceNotAvailableCount++;
 
-                    // _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occId, DateTime.UtcNow);
+                    _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occId, DateTime.UtcNow);
                 }
 
                 _databaseWrapper.ExecuteBatch();
