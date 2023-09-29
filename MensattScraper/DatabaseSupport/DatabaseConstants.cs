@@ -34,4 +34,7 @@ internal static class DatabaseConstants
 
     internal const string InsertDishAliasSql =
         "INSERT INTO dish_alias VALUES(@alias_name, @normalized_alias_name, @dish) RETURNING dish";
+
+    internal const string UpdateOccurrenceNotAvailableAfterByIdSql =
+        "UPDATE occurrence SET not_available_after=@not_available_after WHERE id=@id";
 }

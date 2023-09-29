@@ -14,9 +14,10 @@ internal class WorkerTelemetry
     internal uint TotalOccurrenceTagCount { get; set; }
     internal uint AccumulatedScrapeTimeMs { get; set; }
 
+    internal uint TotalOccurrenceNotAvailableCount { get; set; }
+
     public override string ToString()
     {
-        return
-            $"{nameof(TotalFetches)}: {TotalFetches}, {nameof(TotalDays)}: {TotalDays}, {nameof(TotalItems)}: {TotalItems}, {nameof(PotentialUpdates)}: {PotentialUpdates}, {nameof(TotalSideDishCount)}: {TotalSideDishCount}, {nameof(TotalExistingDishAliasCount)}: {TotalExistingDishAliasCount}, {nameof(TotalFoundDishCount)}: {TotalFoundDishCount}, {nameof(TotalNewDishCount)}: {TotalNewDishCount}, {nameof(TotalNewOccurrenceCount)}: {TotalNewOccurrenceCount}, {nameof(TotalOccurrenceTagCount)}: {TotalOccurrenceTagCount}, {nameof(AccumulatedScrapeTimeMs)}: {AccumulatedScrapeTimeMs}";
+        return $"{nameof(TotalFetches)}: {TotalFetches}, {nameof(TotalDays)}: {TotalDays}, {nameof(TotalItems)}: {TotalItems}, {nameof(PotentialUpdates)}: {PotentialUpdates}, {nameof(TotalSideDishCount)}: {TotalSideDishCount}, {nameof(TotalExistingDishAliasCount)}: {TotalExistingDishAliasCount}, {nameof(TotalFoundDishCount)}: {TotalFoundDishCount}, {nameof(TotalNewDishCount)}: {TotalNewDishCount}, {nameof(TotalNewOccurrenceCount)}: {TotalNewOccurrenceCount}, {nameof(TotalOccurrenceTagCount)}: {TotalOccurrenceTagCount}, {nameof(AccumulatedScrapeTimeMs)}: {AccumulatedScrapeTimeMs}, {nameof(TotalOccurrenceNotAvailableCount)}: {TotalOccurrenceNotAvailableCount}";
     }
 }

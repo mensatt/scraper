@@ -91,6 +91,16 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         }
     };
 
+    private readonly NpgsqlCommand _updateOccurrenceNotAvailableAfterByIdCommand =
+        new(DatabaseConstants.UpdateOccurrenceNotAvailableAfterByIdSql)
+        {
+            Parameters =
+            {
+                new("not_available_after", NpgsqlDbType.TimestampTz),
+                new("id", NpgsqlDbType.Uuid)
+            }
+        };
+
 
     private readonly NpgsqlBatch _commandBatch = new();
 
@@ -269,6 +279,13 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _insertDishAliasCommand.Parameters["normalized_alias_name"].Value = Converter.SanitizeString(extractedDishName);
         _insertDishAliasCommand.Parameters["dish"].Value = dish;
         return (Guid?) _insertDishAliasCommand.ExecuteScalar();
+    }
+
+    public void ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(Guid id, DateTime notAvailableAfter)
+    {
+        _updateOccurrenceNotAvailableAfterByIdCommand.Parameters["id"].Value = id;
+        _updateOccurrenceNotAvailableAfterByIdCommand.Parameters["not_available_after"].Value = notAvailableAfter;
+        _updateOccurrenceNotAvailableAfterByIdCommand.ExecuteNonQuery();
     }
 
     private static void SetParameterToValueOrNull(IDataParameter param, string? value)

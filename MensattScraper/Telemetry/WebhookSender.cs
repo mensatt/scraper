@@ -16,10 +16,13 @@ public class WebhookSender : ILogger
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
-        WebhookRelay.Messages.Enqueue(new(
-            $"{{\"content\" : \"{GenerateWrap(logLevel, (Debugger.IsAttached ? "[Debug] " : string.Empty) + $"{DateTime.UtcNow.ToString("HH:mm:ss")} {logLevel}: [{_identifier}]\\n{formatter.Invoke(state, exception)}")}\"}}",
-            Encoding.UTF8,
-            "application/json"));
+        if (logLevel > LogLevel.Debug)
+        {
+            WebhookRelay.Messages.Enqueue(new(
+                $"{{\"content\" : \"{GenerateWrap(logLevel, (Debugger.IsAttached ? "[Debug] " : string.Empty) + $"{DateTime.Now.ToString("HH:mm:ss")} {logLevel}: [{_identifier}]\\n{formatter.Invoke(state, exception)}")}\"}}",
+                Encoding.UTF8,
+                "application/json"));
+        }
     }
 
     private static string GenerateWrap(LogLevel level, string x) => level switch

@@ -178,6 +178,11 @@ public class Scraper : IDisposable
 
                 _databaseWrapper.ResetBatch();
 
+                // We save a list of the dishes here and remove every dish we encounter in the current pull below
+                // Afterwards we only have the dishes left, which are no longer part of the current line up -
+                // ergo we set their lastAvailableAfter to now
+                var dishesOfPreviousPull = _dailyOccurrences[currentDay].Select(x => x.Item1).ToList();
+
                 var zippedItems = primaryDay.Items.Zip(secondaryDay.Items);
                 foreach (var (primaryItem, secondaryItem) in zippedItems)
                 {
@@ -196,6 +201,8 @@ public class Scraper : IDisposable
                     }
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
+
+                    dishesOfPreviousPull.Remove(dishUuid);
 
                     if (!firstPullOfTheDay)
                     {
@@ -218,7 +225,7 @@ public class Scraper : IDisposable
                             primaryItem,
                             dishUuid)!;
 
-                    Console.WriteLine($"ADD: {occurrenceUuid}");
+                    _ownedLogger.LogDebug($"ADD: {occurrenceUuid}");
 
                     _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
 
@@ -258,6 +265,16 @@ public class Scraper : IDisposable
                         var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish);
                         _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
                     }
+                }
+
+                _ownedLogger.LogInformation($"Found {dishesOfPreviousPull.Count} occurrences to remove");
+                foreach (var dishId in dishesOfPreviousPull)
+                {
+                    var occId = _dailyOccurrences[currentDay].Find(x => x.Item1 == dishId)!.Item2;
+                    _ownedLogger.LogDebug($"REMOVE: {occId}");
+                    _telemetry.TotalOccurrenceNotAvailableCount++;
+
+                    // _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occId, DateTime.UtcNow);
                 }
 
                 _databaseWrapper.ExecuteBatch();
