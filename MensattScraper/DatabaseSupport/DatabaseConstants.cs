@@ -8,7 +8,7 @@ internal static class DatabaseConstants
         "SELECT dish FROM dish_alias WHERE normalized_alias_name=@normalized_alias_name";
 
     internal const string SelectOccurrenceIdNameDateByLocationSql =
-        "SELECT id, dish, date FROM occurrence WHERE location=@location";
+        "SELECT id, dish, date, not_available_after FROM occurrence WHERE location=@location";
 
     internal const string SelectLocationIdNameLocationIdSql = "SELECT id, name, external_id FROM location";
 

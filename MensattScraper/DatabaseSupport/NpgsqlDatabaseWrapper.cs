@@ -181,20 +181,27 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return (Guid?) _selectDishByAliasNameCommand.ExecuteScalar();
     }
 
-    public Dictionary<DateOnly, List<Tuple<Guid, Guid>>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(
+    public Dictionary<DateOnly, List<Occurrence>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(
         Guid locationId)
     {
-        var dateMapping = new Dictionary<DateOnly, List<Tuple<Guid, Guid>>>();
+        var dateMapping = new Dictionary<DateOnly, List<Occurrence>>();
 
         _selectOccurrenceIdNameDateByLocationCommand.Parameters["location"].Value = locationId;
         using var reader = _selectOccurrenceIdNameDateByLocationCommand.ExecuteReader();
         while (reader.Read())
         {
+            var dishId = reader.GetGuid("dish");
+            var occurrenceId = reader.GetGuid("id");
             var occurrenceDate = DateOnly.FromDateTime(reader.GetDateTime("date"));
-            var occurrenceDishTuple = new Tuple<Guid, Guid>(reader.GetGuid("dish"), reader.GetGuid("id"));
+            DateTime? notAvailableAfter;
+            if (reader.IsDBNull("not_available_after"))
+                notAvailableAfter = null;
+            else
+                notAvailableAfter = reader.GetDateTime("not_available_after");
+
             if (!dateMapping.ContainsKey(occurrenceDate))
                 dateMapping.Add(occurrenceDate, new());
-            dateMapping[occurrenceDate].Add(occurrenceDishTuple);
+            dateMapping[occurrenceDate].Add(new(occurrenceId, dishId, notAvailableAfter));
         }
 
         return dateMapping;

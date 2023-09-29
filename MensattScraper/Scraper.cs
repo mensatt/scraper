@@ -21,7 +21,7 @@ public class Scraper : IDisposable
 
     private readonly IDatabaseWrapper _databaseWrapper;
 
-    private Dictionary<DateOnly, List<Tuple<Guid, Guid>>>? _dailyOccurrences;
+    private Dictionary<DateOnly, List<Occurrence>>? _dailyOccurrences;
 
     private readonly CancellationTokenSource _cancellationTokenSource;
 
@@ -181,7 +181,7 @@ public class Scraper : IDisposable
                 // We save a list of the dishes here and remove every dish we encounter in the current pull below
                 // Afterwards we only have the dishes left, which are no longer part of the current line up -
                 // ergo we set their lastAvailableAfter to now
-                var dishesOfPreviousPull = _dailyOccurrences[currentDay].Select(x => x.Item1).ToList();
+                var dishesOfPreviousPull = _dailyOccurrences[currentDay].Select(x => x.Dish).ToList();
 
                 var zippedItems = primaryDay.Items.Zip(secondaryDay.Items);
                 foreach (var (primaryItem, secondaryItem) in zippedItems)
@@ -206,7 +206,7 @@ public class Scraper : IDisposable
 
                     if (!firstPullOfTheDay)
                     {
-                        var savedDishOccurrence = _dailyOccurrences[currentDay].Find(x => x.Item1 == dishUuid);
+                        var savedDishOccurrence = _dailyOccurrences[currentDay].Find(x => x.Dish == dishUuid);
 
                         // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
@@ -227,7 +227,7 @@ public class Scraper : IDisposable
 
                     _ownedLogger.LogDebug($"ADD: {occurrenceUuid}");
 
-                    _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid));
+                    _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid, null));
 
                     var titleTags = Converter.ExtractSingleTagsFromTitle(primaryItem.Title);
                     var pictogramTags = Converter.ExtractTagsFromPictogram(primaryItem.Piktogramme);
@@ -267,14 +267,19 @@ public class Scraper : IDisposable
                     }
                 }
 
-                _ownedLogger.LogInformation($"Found {dishesOfPreviousPull.Count} occurrences to remove");
                 foreach (var dishId in dishesOfPreviousPull)
                 {
-                    var occId = _dailyOccurrences[currentDay].Find(x => x.Item1 == dishId)!.Item2;
-                    _ownedLogger.LogDebug($"REMOVE: {occId}");
-                    _telemetry.TotalOccurrenceNotAvailableCount++;
+                    var occ = _dailyOccurrences[currentDay].Find(x => x.Dish == dishId)!;
+                    if (occ.NotAvailableAfter is not null)
+                    {
+                        _telemetry.TotalOccurrenceAlreadyUnavailableCount++;
+                        continue;
+                    }
 
-                    _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occId, DateTime.UtcNow);
+                    _ownedLogger.LogDebug($"REMOVE: {occ.Id}");
+                    _telemetry.TotalOccurrenceNewUnavailableCount++;
+
+                    _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occ.Id, DateTime.UtcNow);
                 }
 
                 _databaseWrapper.ExecuteBatch();
