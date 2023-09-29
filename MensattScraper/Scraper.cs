@@ -227,7 +227,7 @@ public class Scraper : IDisposable
 
                     _ownedLogger.LogDebug($"ADD: {occurrenceUuid}");
 
-                    _dailyOccurrences[currentDay].Add(new(dishUuid, occurrenceUuid, null));
+                    _dailyOccurrences[currentDay].Add(new(occurrenceUuid, dishUuid, null));
 
                     var titleTags = Converter.ExtractSingleTagsFromTitle(primaryItem.Title);
                     var pictogramTags = Converter.ExtractTagsFromPictogram(primaryItem.Piktogramme);
