@@ -15,7 +15,6 @@ public interface IDatabaseWrapper
     Dictionary<DateOnly, List<Occurrence>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(Guid locationId);
     List<Location> ExecuteSelectIdNameLocationIdCommand();
     List<string> ExecuteSelectTagAllCommand();
-    Dictionary<string, Guid> ExecuteSelectDishAliasesNormalizedDishCommand();
 
     Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle);
 

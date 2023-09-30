@@ -23,8 +23,8 @@ public interface IDataProvider<out T>
                         Directory.CreateDirectory(CopyLocation);
                     using var outputFile =
                         File.Create(
-                            $"{CopyLocation}{Path.DirectorySeparatorChar}{DateTime.UtcNow.ToString("yyyy-MM-dd_HH_mm_ss.fff")}.xml");
-                    SharedLogger.LogInformation($"Copying raw data to {outputFile.Name}");
+                            $"{CopyLocation}{Path.DirectorySeparatorChar}{DateTime.UtcNow:yyyy-MM-dd_HH_mm_ss.fff}.xml");
+                    SharedLogger.LogInformation("Copying raw data to {OutputFileName}", outputFile.Name);
                     currentStream.CopyTo(outputFile);
                     currentStream.Position = 0;
                 }

@@ -45,9 +45,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     private readonly NpgsqlCommand _selectTagAllCommand = new(DatabaseConstants.SelectTagAllSql);
 
-    private readonly NpgsqlCommand _selectDishAliasNormalizedDishCommand =
-        new(DatabaseConstants.SelectDishAliasNormalizedDishSql);
-
     private readonly NpgsqlCommand _insertDishCommand = new(DatabaseConstants.InsertDishWithGermanNameSql)
     {
         Parameters =
@@ -128,7 +125,8 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public NpgsqlDatabaseWrapper(string connectionString)
     {
-        SharedLogger.LogInformation($"Creating DatabaseWrapper with connection string: {connectionString}");
+        SharedLogger.LogInformation("Creating DatabaseWrapper with connection string: {ConnectionString}",
+            connectionString);
         _databaseConnection = new(connectionString);
 
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
@@ -226,15 +224,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return tagList;
     }
 
-    public Dictionary<string, Guid> ExecuteSelectDishAliasesNormalizedDishCommand()
-    {
-        var aliases = new Dictionary<string, Guid>();
-        using var reader = _selectDishAliasNormalizedDishCommand.ExecuteReader();
-        while (reader.Read())
-            aliases.Add(reader.GetString("normalized_alias_name"), reader.GetGuid("dish"));
-        return aliases;
-    }
-
     public Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle)
     {
         _insertDishCommand.Parameters["id"].Value = Guid.NewGuid();
@@ -281,7 +270,8 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     public Guid? ExecuteInsertDishAliasCommand(string? dishName, Guid dish)
     {
         var extractedDishName = Converter.ExtractElementFromTitle(dishName, Converter.TitleElement.Name);
-        SharedLogger.LogInformation($"Inserting new dish alias, extractedDishName={extractedDishName}");
+        SharedLogger.LogInformation("Inserting new dish alias, extractedDishName={ExtractedDishName}",
+            extractedDishName);
         _insertDishAliasCommand.Parameters["alias_name"].Value = extractedDishName;
         _insertDishAliasCommand.Parameters["normalized_alias_name"].Value = Converter.SanitizeString(extractedDishName);
         _insertDishAliasCommand.Parameters["dish"].Value = dish;
@@ -307,7 +297,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public void Dispose()
     {
-        SharedLogger.LogInformation($"Disposing DatabaseWrapper {ToString()}");
+        SharedLogger.LogInformation("Disposing DatabaseWrapper {S}", ToString());
         foreach (var npgsqlCommand in ReflectionUtil.GetFieldValuesWithType<NpgsqlCommand>(
                      typeof(NpgsqlDatabaseWrapper), this))
             npgsqlCommand.Dispose();

@@ -19,7 +19,7 @@ public class WebhookSender : ILogger
         if (logLevel > LogLevel.Debug)
         {
             WebhookRelay.Messages.Enqueue(new(
-                $"{{\"content\" : \"{GenerateWrap(logLevel, (Debugger.IsAttached ? "[Debug] " : string.Empty) + $"{DateTime.Now.ToString("HH:mm:ss")} {logLevel}: [{_identifier}]\\n{formatter.Invoke(state, exception)}")}\"}}",
+                $"{{\"content\" : \"{GenerateWrap(logLevel, (Debugger.IsAttached ? "[Debug] " : string.Empty) + $"{DateTime.Now:HH:mm:ss} {logLevel}: [{_identifier}]\\n{formatter.Invoke(state, exception)}")}\"}}",
                 Encoding.UTF8,
                 "application/json"));
         }
@@ -27,9 +27,9 @@ public class WebhookSender : ILogger
 
     private static string GenerateWrap(LogLevel level, string x) => level switch
     {
-        LogLevel.Trace or LogLevel.Debug or LogLevel.Information => $"```ini\\n{x}\\n```",
-        LogLevel.Warning => $"```fix\\n{x}\\n```",
-        LogLevel.Error or LogLevel.Critical => $"```diff\\n-{x}\\n```",
+        LogLevel.Trace or LogLevel.Debug or LogLevel.Information => $@"```ini\n{x}\n```",
+        LogLevel.Warning => $@"```fix\n{x}\n```",
+        LogLevel.Error or LogLevel.Critical => $@"```diff\n-{x}\n```",
         LogLevel.None => x,
         _ => throw new ArgumentOutOfRangeException(nameof(level), level, null)
     };

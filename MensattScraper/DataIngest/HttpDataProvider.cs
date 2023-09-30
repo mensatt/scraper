@@ -26,7 +26,8 @@ public class HttpDataProvider<T> : IDataProvider<T>, IDisposable
         {
             // Should be disposed when the stream is disposed
             var httpResponse = _client.GetAsync(ApiUrl).Result;
-            SharedLogger.LogInformation($"Queried {ApiUrl} for new data, received: {httpResponse.StatusCode}");
+            SharedLogger.LogInformation("Queried {ApiUrl} for new data, received: {HttpResponseStatusCode}", ApiUrl,
+                httpResponse.StatusCode);
 
             yield return httpResponse.Content.ReadAsStream();
         }

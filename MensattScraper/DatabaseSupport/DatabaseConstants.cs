@@ -14,8 +14,6 @@ internal static class DatabaseConstants
 
     internal const string SelectTagAllSql = "SELECT key FROM tag";
 
-    internal const string SelectDishAliasNormalizedDishSql = "SELECT normalized_alias_name, dish FROM dish_alias";
-
     internal const string InsertDishWithGermanNameSql =
         "INSERT INTO dish (id, name_de, name_en) VALUES (@id, @name_de, @name_en) ON CONFLICT (name_de) DO NOTHING RETURNING id";
 

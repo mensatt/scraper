@@ -30,7 +30,7 @@ internal static class Configuration
             builder.AddSimpleConsole(options =>
             {
                 options.ColorBehavior = LoggerColorBehavior.Enabled;
-                options.TimestampFormat = "hh:mm:ss ";
+                options.TimestampFormat = "HH:mm:ss ";
             });
         }).CreateLogger(categoryName), WebhookUrl != null ? new WebhookSender(categoryName) : null);
 }

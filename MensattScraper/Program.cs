@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using MensattScraper.DatabaseSupport;
+﻿using MensattScraper.DatabaseSupport;
 using MensattScraper.DataIngest;
 using MensattScraper.SourceCompat;
 using Microsoft.Extensions.Logging;

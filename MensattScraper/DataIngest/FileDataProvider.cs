@@ -9,7 +9,7 @@ public class FileDataProvider<T> : IDataProvider<T>
         Path = path;
     }
 
-    internal string Path { get; }
+    private string Path { get; }
 
     public string? CopyLocation
     {

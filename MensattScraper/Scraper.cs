@@ -85,8 +85,8 @@ public class Scraper : IDisposable
             if (primaryMenu is null || secondaryMenu is null)
             {
                 _ownedLogger.LogError(
-                    $"primaryMenu is null -> {primaryMenu == null}," +
-                    $" secondaryMenu is null -> {secondaryMenu == null}");
+                    "primaryMenu is null -> {PrimaryMenuIsNull}," +
+                    " secondaryMenu is null -> {SecondaryMenuIsNull}", primaryMenu == null, secondaryMenu == null);
                 // We cannot safely continue here, as the two streams could be out of sync.
                 // In lack of a better solution, we crash the whole process
                 Environment.Exit(1);
@@ -96,8 +96,9 @@ public class Scraper : IDisposable
             if (primaryMenu.Tags is null || secondaryMenu.Tags is null)
             {
                 _ownedLogger.LogError(
-                    $"Menu days were empty, is primaryMenu.Tags null -> {primaryMenu.Tags == null}," +
-                    $" is secondaryMenu.Tags null -> {secondaryMenu.Tags == null}");
+                    "Menu days were empty, is primaryMenu.Tags null -> {PrimaryMenuTagsIsNull}," +
+                    " is secondaryMenu.Tags null -> {SecondaryMenuTagsIsNull}", primaryMenu.Tags == null,
+                    secondaryMenu.Tags == null);
                 continue;
             }
 
@@ -105,7 +106,8 @@ public class Scraper : IDisposable
             {
                 _ownedLogger.LogError(
                     "Mismatch between primary and secondary menu, primary length is " +
-                    $"{primaryMenu.Tags.Length} while secondary length is {secondaryMenu.Tags.Length}");
+                    "{PrimaryMenuTagsLength} while secondary length is {SecondaryMenuTagsLength}",
+                    primaryMenu.Tags.Length, secondaryMenu.Tags.Length);
                 continue;
             }
 
@@ -131,8 +133,9 @@ public class Scraper : IDisposable
                 if (primaryDay.Items is null || secondaryDay.Items is null)
                 {
                     _ownedLogger.LogError(
-                        $"primaryDay.Items is null -> {primaryDay.Items is null}," +
-                        $" secondary.Items is null -> {secondaryDay.Items is null}");
+                        "primaryDay.Items is null -> {PrimaryDayItemsIsNull}," +
+                        " secondary.Items is null -> {SecondaryDayItemsIsNull}", primaryDay.Items is null,
+                        secondaryDay.Items is null);
                     continue;
                 }
 
@@ -140,15 +143,17 @@ public class Scraper : IDisposable
                 {
                     _ownedLogger.LogError(
                         "Mismatch between primary and secondary menu items length, primary length is " +
-                        $"{primaryDay.Items.Length} while secondary length is {secondaryDay.Items.Length}");
+                        "{PrimaryDayItemsLength} while secondary length is {SecondaryDayItemsLength}",
+                        primaryDay.Items.Length, secondaryDay.Items.Length);
                     continue;
                 }
 
                 if (primaryDay.Timestamp != secondaryDay.Timestamp)
                 {
                     _ownedLogger.LogError(
-                        $"Timestamp mismatch, {nameof(primaryDay.Timestamp)}={primaryDay.Timestamp} " +
-                        $"and {nameof(secondaryDay.Timestamp)}={secondaryDay.Timestamp}");
+                        "Timestamp mismatch, {NameOfPrimaryDayTimestamp}={PrimaryDayTimestamp} " +
+                        "and {NameOfSecondaryDayTimestamp}={SecondaryDayTimestamp}", nameof(primaryDay.Timestamp),
+                        primaryDay.Timestamp, nameof(secondaryDay.Timestamp), secondaryDay.Timestamp);
                     continue;
                 }
 
@@ -157,8 +162,8 @@ public class Scraper : IDisposable
                 if (DateOnly.FromDateTime(DateTime.Now) > currentDay)
                 {
                     _ownedLogger.LogWarning(
-                        $"Noticed menu from the past, today is {DateOnly.FromDateTime(DateTime.Now)} menu was from {currentDay}"
-                    );
+                        "Noticed menu from the past, today is {FromDateTime} menu was from {CurrentDay}",
+                        DateOnly.FromDateTime(DateTime.Now), currentDay);
                     continue;
                 }
 
@@ -197,7 +202,8 @@ public class Scraper : IDisposable
                     if (primaryItem != secondaryItem)
                     {
                         _ownedLogger.LogWarning(
-                            $"Noticed item consistency mismatch: {primaryItem.Title} vs {secondaryItem.Title}");
+                            "Noticed item consistency mismatch: {PrimaryItemTitle} vs {SecondaryItemTitle}",
+                            primaryItem.Title, secondaryItem.Title);
                     }
 
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
@@ -225,9 +231,9 @@ public class Scraper : IDisposable
                             primaryItem,
                             dishUuid)!;
 
-                    _ownedLogger.LogDebug($"ADD: {occurrenceUuid}");
+                    _ownedLogger.LogDebug("ADD: {OccurrenceUuid}", occurrenceUuid);
 
-                    _dailyOccurrences[currentDay].Add(new(occurrenceUuid, dishUuid, null));
+                    _dailyOccurrences[currentDay].Add(new(occurrenceUuid, dishUuid));
 
                     var titleTags = Converter.ExtractSingleTagsFromTitle(primaryItem.Title);
                     var pictogramTags = Converter.ExtractTagsFromPictogram(primaryItem.Piktogramme);
@@ -276,7 +282,7 @@ public class Scraper : IDisposable
                         continue;
                     }
 
-                    _ownedLogger.LogDebug($"REMOVE: {occ.Id}");
+                    _ownedLogger.LogDebug("REMOVE: {OccId}", occ.Id);
                     _telemetry.TotalOccurrenceNewUnavailableCount++;
 
                     _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occ.Id, DateTime.UtcNow);
@@ -285,8 +291,8 @@ public class Scraper : IDisposable
                 _databaseWrapper.ExecuteBatch();
             }
 
-            _ownedLogger.LogInformation(
-                $"Scraping took {timer.ElapsedMilliseconds}ms, going to sleep");
+            _ownedLogger.LogInformation("Scraping took {TimerElapsedMilliseconds}ms, going to sleep",
+                timer.ElapsedMilliseconds);
             _telemetry.AccumulatedScrapeTimeMs += (uint) timer.ElapsedMilliseconds;
             _cancellationTokenSource.Token.WaitHandle.WaitOne(
                 TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));

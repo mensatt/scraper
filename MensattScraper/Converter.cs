@@ -19,7 +19,7 @@ public static class Converter
     {
         if (title is null)
         {
-            SharedLogger.LogWarning($"Can't extract titleElement={titleElement} out of a null title");
+            SharedLogger.LogWarning("Can\'t extract titleElement={TitleElement} out of a null title", titleElement);
             return string.Empty;
         }
 
@@ -31,7 +31,8 @@ public static class Converter
 
         if (title.Count(x => x == '(') != title.Count(x => x == ')'))
         {
-            SharedLogger.LogError("Mismatched parentheses, Mode: " + titleElement + ", Title:`" + title + "`");
+            SharedLogger.LogError("Mismatched parentheses, Mode: {TitleElement} Title:` {Title}`",
+                titleElement, title);
             return string.Empty;
         }
 
@@ -79,7 +80,7 @@ public static class Converter
 
     public static string SanitizeString(string input) =>
         Regex.Replace(input.ToLowerInvariant().RemoveDiacritics(),
-            @"[^a-z0-9 ]", string.Empty).RemoveIrrelevantWords().RemoveMultipleWhiteSpaces();
+            "[^a-z0-9 ]", string.Empty).RemoveIrrelevantWords().RemoveMultipleWhiteSpaces();
 
     private static readonly HashSet<string> IrrelevantWords = new() {"mit", "und"};
 
