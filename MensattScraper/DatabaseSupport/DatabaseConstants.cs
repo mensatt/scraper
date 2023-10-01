@@ -10,6 +10,16 @@ internal static class DatabaseConstants
     internal const string SelectOccurrenceIdNameDateByLocationSql =
         "SELECT id, dish, date, not_available_after FROM occurrence WHERE location=@location";
 
+    internal const string SelectFullOccurrenceByLocationDateSql =
+        "SELECT id, date, kj, kcal, fat, saturated_fat, carbohydrates," +
+        " sugar, fiber, protein, salt, price_student, price_staff, price_guest," +
+        " dish, not_available_after FROM occurrence WHERE location=@location" +
+        " AND date>=@date";
+
+    internal const string SelectOccurrenceTagsByIdSql =
+        "SELECT ot.tag FROM occurrence o JOIN occurrence_tags ot on o.id = ot.occurrence" +
+        " WHERE o.id = @id";
+
     internal const string SelectLocationIdNameLocationIdSql = "SELECT id, name, external_id FROM location";
 
     internal const string SelectTagAllSql = "SELECT key FROM tag";

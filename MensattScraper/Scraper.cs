@@ -119,6 +119,10 @@ public class Scraper : IDisposable
                 _databaseWrapper.ExecuteSelectOccurrenceIdNameDateByLocationCommand(
                     DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId));
 
+            var xyz = _databaseWrapper.RetrieveFullOccurrencesWithTags(
+                DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId),
+                DateOnly.FromDateTime(DateTime.Now.AddDays(-14)));
+
             // Remove all occurrences that are longer than a week old
             var lastWeek = DateOnly.FromDateTime(DateTime.Now.AddDays(-7));
             _dailyOccurrences.RemoveAllByKey(date => date < lastWeek);

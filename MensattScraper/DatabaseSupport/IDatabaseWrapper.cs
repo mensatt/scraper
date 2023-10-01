@@ -16,6 +16,9 @@ public interface IDatabaseWrapper
     List<Location> ExecuteSelectIdNameLocationIdCommand();
     List<string> ExecuteSelectTagAllCommand();
 
+    Dictionary<DateOnly, List<Occurrence>> RetrieveFullOccurrencesWithTags(Guid locationId,
+        DateOnly newerThanDate);
+
     Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle);
 
     Guid? ExecuteInsertOccurrenceCommand(Guid locationId, DayTag dayTag, Item item, Guid dish);

@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
 using MensattScraper.Util;
@@ -44,6 +45,25 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         new(DatabaseConstants.SelectLocationIdNameLocationIdSql);
 
     private readonly NpgsqlCommand _selectTagAllCommand = new(DatabaseConstants.SelectTagAllSql);
+
+    private readonly NpgsqlCommand _selectFullOccurrenceByLocationDateCommand =
+        new(DatabaseConstants.SelectFullOccurrenceByLocationDateSql)
+        {
+            Parameters =
+            {
+                new("location", NpgsqlDbType.Uuid),
+                new("date", NpgsqlDbType.Date)
+            }
+        };
+
+    private readonly NpgsqlCommand _selectOccurrenceTagsByIdCommand =
+        new(DatabaseConstants.SelectOccurrenceTagsByIdSql)
+        {
+            Parameters =
+            {
+                new("id", NpgsqlDbType.Uuid)
+            }
+        };
 
     private readonly NpgsqlCommand _insertDishCommand = new(DatabaseConstants.InsertDishWithGermanNameSql)
     {
@@ -224,6 +244,46 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         return tagList;
     }
 
+    public Dictionary<DateOnly, List<Occurrence>> RetrieveFullOccurrencesWithTags(Guid locationId,
+        DateOnly newerThanDate)
+    {
+        _selectFullOccurrenceByLocationDateCommand.Parameters["location"].Value = locationId;
+        _selectFullOccurrenceByLocationDateCommand.Parameters["date"].Value = newerThanDate;
+        var dateMapping = new Dictionary<DateOnly, List<Occurrence>>();
+        {
+            using var reader = _selectFullOccurrenceByLocationDateCommand.ExecuteReader();
+
+            while (reader.Read())
+            {
+                var occurrenceDate = DateOnly.FromDateTime(reader.GetDateTime("date"));
+
+                var occurrence = new Occurrence(reader.GetGuid("id"), reader.GetGuid("dish"),
+                    reader.GetDateTimeOrNull("not_available_after"), reader.GetIntOrNull("price_student"),
+                    reader.GetIntOrNull("price_staff"),
+                    reader.GetIntOrNull("price_guest"), null, reader.GetIntOrNull("kj"), reader.GetIntOrNull("kcal"),
+                    reader.GetIntOrNull("fat"), reader.GetIntOrNull("saturated_fat"),
+                    reader.GetIntOrNull("carbohydrates"),
+                    reader.GetIntOrNull("sugar"), reader.GetIntOrNull("fiber"), reader.GetIntOrNull("protein"),
+                    reader.GetIntOrNull("salt"));
+
+                if (!dateMapping.ContainsKey(occurrenceDate))
+                    dateMapping.Add(occurrenceDate, new());
+                dateMapping[occurrenceDate].Add(occurrence);
+            }
+        }
+
+        foreach (var occurrence in dateMapping.Values.SelectMany(occurrenceList => occurrenceList))
+        {
+            _selectOccurrenceTagsByIdCommand.Parameters["id"].Value = occurrence.Id;
+            using var tagReader = _selectOccurrenceTagsByIdCommand.ExecuteReader();
+            occurrence.Tags = new();
+            while (tagReader.Read())
+                occurrence.Tags.Add(tagReader.GetString("tag"));
+        }
+
+        return dateMapping;
+    }
+
     public Guid? ExecuteInsertDishCommand(string? primaryTitle, string? secondaryTitle)
     {
         _insertDishCommand.Parameters["id"].Value = Guid.NewGuid();
@@ -294,6 +354,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
     {
         param.Value = value.HasValue ? value : DBNull.Value;
     }
+
 
     public void Dispose()
     {
