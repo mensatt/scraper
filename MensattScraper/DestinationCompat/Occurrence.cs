@@ -33,7 +33,7 @@ public class Occurrence
 
     public Guid Id { get; private set; }
     public Guid Dish { get; private set; }
-    public DateTime? NotAvailableAfter { get; private set; }
+    public DateTime? NotAvailableAfter { get; set; }
 
     // TODO: Make side dishes updateable
 

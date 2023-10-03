@@ -289,7 +289,7 @@ public class Scraper : IDisposable
 
                     _ownedLogger.LogDebug("REMOVE: {OccId}", occ.Id);
                     _telemetry.TotalOccurrenceNewUnavailableCount++;
-
+                    occ.NotAvailableAfter = DateTime.UtcNow;
                     _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occ.Id, DateTime.UtcNow);
                 }
 
