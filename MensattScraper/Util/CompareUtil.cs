@@ -107,7 +107,7 @@ public static class CompareUtil
             return false;
         }
 
-        if (!itemTags.TrueForAll(it => o.Tags.Contains(it)))
+        if (!itemTags.TrueForAll(it => o.Tags.Select(Converter.NormalizeTag).Contains(it)))
         {
             logger?.LogTrace("{ItemTagsName} != {OTagsName}: {ItemTags} != {OTags}", nameof(itemTags), nameof(o.Tags),
                 itemTags, o.Tags);

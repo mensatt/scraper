@@ -135,7 +135,7 @@ public static class Converter
     public static IEnumerable<string> ExtractCombinedTags(string? title, string? pictogram) =>
         ExtractSingleTagsFromTitle(title).Concat(ExtractTagsFromPictogram(pictogram)).Distinct();
 
-    private static string NormalizeTag(string tag) =>
+    internal static string NormalizeTag(string tag) =>
         tag switch
         {
             "VEG" => "Veg",
