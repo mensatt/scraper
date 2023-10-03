@@ -302,13 +302,15 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             }
         }
 
-        foreach (var occurrence in dateMapping.Values.SelectMany(occurrenceList => occurrenceList))
+        foreach (List<Occurrence> occurrenceList in dateMapping.Values)
         {
-            _selectOccurrenceTagsByIdCommand.Parameters["id"].Value = occurrence.Id;
-            using var tagReader = _selectOccurrenceTagsByIdCommand.ExecuteReader();
-            occurrence.Tags = new();
-            while (tagReader.Read())
-                occurrence.Tags.Add(tagReader.GetString("tag"));
+            foreach (Occurrence occurrence in occurrenceList)
+            {
+                _selectOccurrenceTagsByIdCommand.Parameters["id"].Value = occurrence.Id;
+                using var tagReader = _selectOccurrenceTagsByIdCommand.ExecuteReader();
+                occurrence.Tags = new();
+                while (tagReader.Read()) occurrence.Tags.Add(tagReader.GetString("tag"));
+            }
         }
 
         return dateMapping;
@@ -386,7 +388,13 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
         _updateOccurrenceContentsByIdCommand.Parameters["id"].Value = occurrenceId;
 
-        _updateOccurrenceContentsByIdCommand.ExecuteNonQuery();
+        foreach (NpgsqlParameter parameter in _updateOccurrenceContentsByIdCommand.Parameters)
+        {
+            SharedLogger.LogTrace(parameter.SourceColumn + " = " + parameter.Value);
+        }
+
+        var rows = _updateOccurrenceContentsByIdCommand.ExecuteNonQuery();
+        SharedLogger.LogTrace("Content update affected {RowCount} rows", rows);
     }
 
     public void ExecuteDeleteOccurrenceTagByIdTagCommand(Guid id, string tag)

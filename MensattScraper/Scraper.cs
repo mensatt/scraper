@@ -225,7 +225,8 @@ public class Scraper : IDisposable
                             }
                             else
                             {
-                                _ownedLogger.LogInformation("Content update {PrimaryItemTitle}", primaryItem.Title);
+                                _ownedLogger.LogInformation("Content update {PrimaryItemTitle} {O}", primaryItem.Title,
+                                    savedDishOccurrence.Id);
 
                                 _databaseWrapper.ExecuteUpdateOccurrenceContentsByIdCommand(savedDishOccurrence.Id,
                                     primaryItem);
@@ -335,7 +336,7 @@ public class Scraper : IDisposable
         toRemove.ForEach(tag =>
             _databaseWrapper.ExecuteDeleteOccurrenceTagByIdTagCommand(
                 savedDishOccurrence.Id, tag));
-       savedDishOccurrence.TagUpdate(toAdd, toRemove);
+        savedDishOccurrence.TagUpdate(toAdd, toRemove);
         return true;
     }
 
