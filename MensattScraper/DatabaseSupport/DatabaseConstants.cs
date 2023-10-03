@@ -53,5 +53,5 @@ internal static class DatabaseConstants
         "WHERE id=@id";
 
     internal const string DeleteOccurrenceTagByIdTagSql =
-        "DELETE FROM occurrence_tags WHERE occurrence=@occurrence AND tag=@tag";
+        "DELETE FROM occurrence_tags WHERE occurrence=@id AND tag=@tag";
 }
