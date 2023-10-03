@@ -45,4 +45,13 @@ internal static class DatabaseConstants
 
     internal const string UpdateOccurrenceNotAvailableAfterByIdSql =
         "UPDATE occurrence SET not_available_after=@not_available_after WHERE id=@id";
+
+    internal const string UpdateOccurrenceContentsByIdSql =
+        "UPDATE occurrence SET kj=@kj, kcal=@kcal, fat=@fat, saturated_fat=@saturated_fat, " +
+        "carbohydrates=@carbohydrates, sugar=@sugar, fiber=@fiber, protein=@protein, salt=@salt, " +
+        "price_student=@price_student, price_staff=@price_staff, price_guest=@price_guest " +
+        "WHERE id=@id";
+
+    internal const string DeleteOccurrenceTagByIdTagSql =
+        "DELETE FROM occurrence_tags WHERE occurrence=@occurrence AND tag=@tag";
 }

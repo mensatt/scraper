@@ -26,7 +26,8 @@ public interface IDatabaseWrapper
     Guid? ExecuteInsertDishAliasCommand(string? dishName, Guid dish);
 
     void ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(Guid id, DateTime notAvailableAfter);
-
+    void ExecuteUpdateOccurrenceContentsByIdCommand(Guid occurrenceId, Item i);
+    void ExecuteDeleteOccurrenceTagByIdTagCommand(Guid id, string tag);
 
     void Dispose();
 }

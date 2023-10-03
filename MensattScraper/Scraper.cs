@@ -217,17 +217,26 @@ public class Scraper : IDisposable
                         // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
                         {
-                            if (CompareUtil.Equals(primaryItem, dishUuid, savedDishOccurrence, _ownedLogger))
+                            if (CompareUtil.ContentEquals(primaryItem, dishUuid, savedDishOccurrence, _ownedLogger))
                             {
-                                _telemetry.NeedsNoUpdate++;
+                                if (!HandleTagUpdate(primaryItem, savedDishOccurrence))
+                                    _telemetry.NeedsNoUpdate++;
                             }
                             else
                             {
-                                _telemetry.PotentialUpdates++;
-                                _ownedLogger.LogInformation("Would update {PrimaryItemTitle}", primaryItem.Title);
+                                _ownedLogger.LogInformation("Content update {PrimaryItemTitle}", primaryItem.Title);
+
+                                // _databaseWrapper.ExecuteUpdateOccurrenceContentsByIdCommand(savedDishOccurrence.Id,
+                                //     primaryItem);
+                                // savedDishOccurrence.ContentUpdate(primaryItem);
+
+                                HandleTagUpdate(primaryItem, savedDishOccurrence);
+
+                                _telemetry.ConfirmedUpdates++;
                             }
 
-                            continue; // Update in the future
+                            _databaseWrapper.ExecuteBatch();
+                            continue;
                         }
                     }
 
@@ -302,6 +311,30 @@ public class Scraper : IDisposable
             _cancellationTokenSource.Token.WaitHandle.WaitOne(
                 TimeSpan.FromSeconds(_primaryDataProvider.GetDataDelayInSeconds));
         }
+    }
+
+    private bool HandleTagUpdate(Item primaryItem, Occurrence savedDishOccurrence)
+    {
+        var (toAdd, toRemove) = CompareUtil.TagEquals(primaryItem, savedDishOccurrence,
+            _ownedLogger);
+        if (toAdd.Count == 0 && toRemove.Count == 0)
+        {
+            return false;
+        }
+
+        // Tag update
+        _ownedLogger.LogInformation("Tag update {PrimaryItemTitle}", primaryItem.Title);
+        _telemetry.ConfirmedUpdates++;
+        // toAdd.ForEach(tag =>
+        //     _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(savedDishOccurrence.Id,
+        //         tag));
+        // toRemove.ForEach(tag =>
+        //     _databaseWrapper.ExecuteDeleteOccurrenceTagByIdTagCommand(
+        //         savedDishOccurrence.Id, tag));
+        toAdd.ForEach(tag => _ownedLogger.LogTrace("Adding tag: {Tag}", tag));
+        toRemove.ForEach(tag => _ownedLogger.LogTrace("Removing tag: {Tag}", tag));
+        // savedDishOccurrence.TagUpdate(toAdd, toRemove);
+        return true;
     }
 
     private Guid InsertDishIfNotExists(string? primaryDishTitle, string? secondaryDishTitle)

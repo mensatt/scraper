@@ -1,3 +1,5 @@
+using MensattScraper.SourceCompat;
+
 namespace MensattScraper.DestinationCompat;
 
 public class Occurrence
@@ -29,6 +31,28 @@ public class Occurrence
         Fiber = fiber;
         Protein = protein;
         Salt = salt;
+    }
+
+    public void ContentUpdate(Item i)
+    {
+        PriceStudent = Converter.FloatStringToInt(i.Preis1);
+        PriceStaff = Converter.FloatStringToInt(i.Preis2);
+        PriceGuest = Converter.FloatStringToInt(i.Preis3);
+        Kj = Converter.BigFloatStringToInt(i.Kj);
+        Kcal = Converter.BigFloatStringToInt(i.Kcal);
+        Fat = Converter.FloatStringToInt(i.Fett);
+        SaturatedFat = Converter.FloatStringToInt(i.Gesfett);
+        Carbohydrates = Converter.FloatStringToInt(i.Kh);
+        Sugar = Converter.FloatStringToInt(i.Zucker);
+        Fiber = Converter.FloatStringToInt(i.Ballaststoffe);
+        Protein = Converter.FloatStringToInt(i.Eiweiss);
+        Salt = Converter.FloatStringToInt(i.Salz);
+    }
+
+    public void TagUpdate(List<string> toAdd, List<string> toRemove)
+    {
+        toAdd.ForEach(tag => Tags?.Add(tag));
+        toRemove.ForEach(tag => Tags?.Remove(tag));
     }
 
     public Guid Id { get; private set; }

@@ -118,6 +118,36 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             }
         };
 
+    private readonly NpgsqlCommand _updateOccurrenceContentsByIdCommand =
+        new(DatabaseConstants.UpdateOccurrenceContentsByIdSql)
+        {
+            Parameters =
+            {
+                new("id", NpgsqlDbType.Uuid),
+                new("kj", NpgsqlDbType.Integer),
+                new("kcal", NpgsqlDbType.Integer),
+                new("fat", NpgsqlDbType.Integer),
+                new("saturated_fat", NpgsqlDbType.Integer),
+                new("carbohydrates", NpgsqlDbType.Integer),
+                new("sugar", NpgsqlDbType.Integer),
+                new("fiber", NpgsqlDbType.Integer),
+                new("protein", NpgsqlDbType.Integer),
+                new("salt", NpgsqlDbType.Integer),
+                new("price_student", NpgsqlDbType.Integer),
+                new("price_staff", NpgsqlDbType.Integer),
+                new("price_guest", NpgsqlDbType.Integer)
+            }
+        };
+
+    private readonly NpgsqlCommand _deleteOccurrenceTagByIdTagCommand =
+        new(DatabaseConstants.DeleteOccurrenceTagByIdTagSql)
+        {
+            Parameters =
+            {
+                new("id", NpgsqlDbType.Uuid),
+                new("tag", NpgsqlDbType.Varchar)
+            }
+        };
 
     private readonly NpgsqlBatch _commandBatch = new();
 
@@ -343,6 +373,34 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _updateOccurrenceNotAvailableAfterByIdCommand.Parameters["id"].Value = id;
         _updateOccurrenceNotAvailableAfterByIdCommand.Parameters["not_available_after"].Value = notAvailableAfter;
         _updateOccurrenceNotAvailableAfterByIdCommand.ExecuteNonQuery();
+    }
+
+    public void ExecuteUpdateOccurrenceContentsByIdCommand(Guid occurrenceId, Item i)
+    {
+        _updateOccurrenceContentsByIdCommand.Parameters["kj"].Value = Converter.BigFloatStringToInt(i.Kj);
+        _updateOccurrenceContentsByIdCommand.Parameters["kcal"].Value = Converter.BigFloatStringToInt(i.Kcal);
+        _updateOccurrenceContentsByIdCommand.Parameters["fat"].Value = Converter.FloatStringToInt(i.Fett);
+        _updateOccurrenceContentsByIdCommand.Parameters["saturated_fat"].Value = Converter.FloatStringToInt(i.Gesfett);
+        _updateOccurrenceContentsByIdCommand.Parameters["carbohydrates"].Value = Converter.FloatStringToInt(i.Kh);
+        _updateOccurrenceContentsByIdCommand.Parameters["sugar"].Value = Converter.FloatStringToInt(i.Zucker);
+        _updateOccurrenceContentsByIdCommand.Parameters["fiber"].Value = Converter.FloatStringToInt(i.Ballaststoffe);
+        _updateOccurrenceContentsByIdCommand.Parameters["protein"].Value = Converter.FloatStringToInt(i.Eiweiss);
+        _updateOccurrenceContentsByIdCommand.Parameters["salt"].Value = Converter.FloatStringToInt(i.Salz);
+        _updateOccurrenceContentsByIdCommand.Parameters["price_student"].Value = Converter.FloatStringToInt(i.Preis1);
+        _updateOccurrenceContentsByIdCommand.Parameters["price_staff"].Value = Converter.FloatStringToInt(i.Preis2);
+        _updateOccurrenceContentsByIdCommand.Parameters["price_guest"].Value = Converter.FloatStringToInt(i.Preis3);
+
+        _updateOccurrenceContentsByIdCommand.Parameters["id"].Value = occurrenceId;
+
+        _updateOccurrenceContentsByIdCommand.ExecuteNonQuery();
+    }
+
+    public void ExecuteDeleteOccurrenceTagByIdTagCommand(Guid id, string tag)
+    {
+        _deleteOccurrenceTagByIdTagCommand.Parameters["id"].Value = id;
+        _deleteOccurrenceTagByIdTagCommand.Parameters["tag"].Value = tag;
+
+        _deleteOccurrenceTagByIdTagCommand.ExecuteNonQuery();
     }
 
     private static void SetParameterToValueOrNull(IDataParameter param, string? value)

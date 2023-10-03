@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using MensattScraper.DestinationCompat;
 using MensattScraper.SourceCompat;
 using Microsoft.Extensions.Logging;
@@ -6,7 +7,7 @@ namespace MensattScraper.Util;
 
 public static class CompareUtil
 {
-    public static bool Equals(Item i, Guid itemDish, Occurrence o, ILogger? logger = null)
+    public static bool ContentEquals(Item i, Guid itemDish, Occurrence o, ILogger? logger = null)
     {
         if (itemDish != o.Dish)
         {
@@ -39,14 +40,14 @@ public static class CompareUtil
         if (Converter.BigFloatStringToInt(i.Kj) != o.Kj)
         {
             logger?.LogTrace("{ItemKjName} != {OKjName}: {ItemKj} != {OKj}", nameof(i.Kj), nameof(o.Kj),
-                Converter.FloatStringToInt(i.Kj), o.Kj);
+                Converter.BigFloatStringToInt(i.Kj), o.Kj);
             return false;
         }
 
         if (Converter.BigFloatStringToInt(i.Kcal) != o.Kcal)
         {
             logger?.LogTrace("{ItemKcalName} != {OKcalName}: {ItemKcal} != {OKcal}", nameof(i.Kcal), nameof(o.Kcal),
-                Converter.FloatStringToInt(i.Kcal), o.Kcal);
+                Converter.BigFloatStringToInt(i.Kcal), o.Kcal);
             return false;
         }
 
@@ -99,21 +100,17 @@ public static class CompareUtil
             return false;
         }
 
-        var itemTags = Converter.ExtractCombinedTags(i.Title, i.Piktogramme).ToList();
-        if (itemTags.Count != o.Tags?.Count)
-        {
-            logger?.LogTrace("{ItemTagsName} != {OTagsName}: {ItemTags} != {OTags}", nameof(itemTags), nameof(o.Tags),
-                itemTags, o.Tags);
-            return false;
-        }
-
-        if (!itemTags.TrueForAll(it => o.Tags.Select(Converter.NormalizeTag).Contains(it)))
-        {
-            logger?.LogTrace("{ItemTagsName} != {OTagsName}: {ItemTags} != {OTags}", nameof(itemTags), nameof(o.Tags),
-                itemTags, o.Tags);
-            return false;
-        }
-
         return true;
+    }
+
+    public static (List<string> toAdd, List<string> toRemove) TagEquals(Item i, Occurrence o, ILogger? logger = null)
+    {
+        var itemTags = Converter.ExtractCombinedTags(i.Title, i.Piktogramme).ToList();
+        var occurrenceTags = o.Tags ?? new List<string>();
+
+        var toAdd = itemTags.Except(occurrenceTags).ToList();
+        var toRemove = occurrenceTags.Except(itemTags).ToList();
+
+        return (toAdd, toRemove);
     }
 }
