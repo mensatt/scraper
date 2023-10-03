@@ -184,6 +184,15 @@ public class Scraper : IDisposable
 
                 _databaseWrapper.ResetBatch();
 
+                // This list saves all *dish* ids, which were handled for a given day and ignores them in the update
+                // step below.
+                // The underlying problem is the following:
+                // When there are two entries in the xml, where the item's name is different but they get mapped to the
+                // same dish for mensatt (so two aliases mapping to one dish), we fetch the same saved occurrence.
+                // However, the item's stats (such as kcal, kj, ...) can and *do* differ, so we end in an update loop.
+                // TODO: Fix this properly
+                var handledDishIds = new HashSet<Guid>();
+
                 // We save a list of the dishes here and remove every dish we encounter in the current pull below
                 // Afterwards we only have the dishes left, which are no longer part of the current line up -
                 // ergo we set their lastAvailableAfter to now
@@ -210,6 +219,7 @@ public class Scraper : IDisposable
                     var dishUuid = InsertDishIfNotExists(primaryItem.Title, secondaryItem.Title);
 
                     dishesOfPreviousPull.Remove(dishUuid);
+                    var knownDish = handledDishIds.Add(dishUuid);
 
                     if (!firstPullOfTheDay)
                     {
@@ -218,6 +228,14 @@ public class Scraper : IDisposable
                         // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
                         {
+                            if (!knownDish)
+                            {
+                                _telemetry.SkipHandledDishIdsUpdateCount++;
+                                _ownedLogger.LogTrace("Skipping known dish update for {DishUuid} {DishName}", dishUuid,
+                                    primaryItem.Title);
+                                continue;
+                            }
+
                             if (CompareUtil.ContentEquals(primaryItem, dishUuid, savedDishOccurrence, _ownedLogger))
                             {
                                 if (!HandleTagUpdate(primaryItem, savedDishOccurrence))

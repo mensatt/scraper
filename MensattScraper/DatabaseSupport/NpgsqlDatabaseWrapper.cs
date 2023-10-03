@@ -388,11 +388,6 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
         _updateOccurrenceContentsByIdCommand.Parameters["id"].Value = occurrenceId;
 
-        foreach (NpgsqlParameter parameter in _updateOccurrenceContentsByIdCommand.Parameters)
-        {
-            SharedLogger.LogTrace(parameter.SourceColumn + " = " + parameter.Value);
-        }
-
         var rows = _updateOccurrenceContentsByIdCommand.ExecuteNonQuery();
         SharedLogger.LogTrace("Content update affected {RowCount} rows", rows);
     }
