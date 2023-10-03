@@ -63,8 +63,9 @@ public class Scraper : IDisposable
 
     public void PrintTelemetry()
     {
-        Console.WriteLine($"Telemetry for {_identifier}:");
-        Console.WriteLine(_telemetry.ToString());
+        _ownedLogger.LogInformation("Telemetry for {Identifier}:", _identifier);
+
+        _ownedLogger.LogInformation("{}", _telemetry.ToString());
     }
 
     public void Scrape()
@@ -226,9 +227,9 @@ public class Scraper : IDisposable
                             {
                                 _ownedLogger.LogInformation("Content update {PrimaryItemTitle}", primaryItem.Title);
 
-                                // _databaseWrapper.ExecuteUpdateOccurrenceContentsByIdCommand(savedDishOccurrence.Id,
-                                //     primaryItem);
-                                // savedDishOccurrence.ContentUpdate(primaryItem);
+                                _databaseWrapper.ExecuteUpdateOccurrenceContentsByIdCommand(savedDishOccurrence.Id,
+                                    primaryItem);
+                                savedDishOccurrence.ContentUpdate(primaryItem);
 
                                 HandleTagUpdate(primaryItem, savedDishOccurrence);
 
@@ -325,15 +326,15 @@ public class Scraper : IDisposable
         // Tag update
         _ownedLogger.LogInformation("Tag update {PrimaryItemTitle}", primaryItem.Title);
         _telemetry.ConfirmedUpdates++;
-        // toAdd.ForEach(tag =>
-        //     _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(savedDishOccurrence.Id,
-        //         tag));
-        // toRemove.ForEach(tag =>
-        //     _databaseWrapper.ExecuteDeleteOccurrenceTagByIdTagCommand(
-        //         savedDishOccurrence.Id, tag));
+        toAdd.ForEach(tag =>
+            _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(savedDishOccurrence.Id,
+                tag));
+        toRemove.ForEach(tag =>
+            _databaseWrapper.ExecuteDeleteOccurrenceTagByIdTagCommand(
+                savedDishOccurrence.Id, tag));
         toAdd.ForEach(tag => _ownedLogger.LogTrace("Adding tag: {Tag}", tag));
         toRemove.ForEach(tag => _ownedLogger.LogTrace("Removing tag: {Tag}", tag));
-        // savedDishOccurrence.TagUpdate(toAdd, toRemove);
+        savedDishOccurrence.TagUpdate(toAdd, toRemove);
         return true;
     }
 
