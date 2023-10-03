@@ -61,6 +61,12 @@ public class Item
     [XmlElement(ElementName = "foto")]
     public string? Foto { get; set; }
 
+    public override string ToString()
+    {
+        return
+            $"{nameof(Category)}: {Category}, {nameof(Title)}: {Title}, {nameof(Description)}: {Description}, {nameof(Beilagen)}: {Beilagen}, {nameof(Preis1)}: {Preis1}, {nameof(Preis2)}: {Preis2}, {nameof(Preis3)}: {Preis3}, {nameof(Einheit)}: {Einheit}, {nameof(Piktogramme)}: {Piktogramme}, {nameof(Kj)}: {Kj}, {nameof(Kcal)}: {Kcal}, {nameof(Fett)}: {Fett}, {nameof(Gesfett)}: {Gesfett}, {nameof(Kh)}: {Kh}, {nameof(Zucker)}: {Zucker}, {nameof(Ballaststoffe)}: {Ballaststoffe}, {nameof(Eiweiss)}: {Eiweiss}, {nameof(Salz)}: {Salz}, {nameof(Foto)}: {Foto}";
+    }
+
     protected bool Equals(Item other)
     {
         // NOTE: Every part that could possible be translated is *not* included in the comparison

@@ -326,15 +326,16 @@ public class Scraper : IDisposable
         // Tag update
         _ownedLogger.LogInformation("Tag update {PrimaryItemTitle}", primaryItem.Title);
         _telemetry.ConfirmedUpdates++;
+        toAdd.ForEach(tag => _ownedLogger.LogTrace("Adding tag: {Tag}", tag));
+        toRemove.ForEach(tag => _ownedLogger.LogTrace("Removing tag: {Tag}", tag));
+
         toAdd.ForEach(tag =>
             _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(savedDishOccurrence.Id,
                 tag));
         toRemove.ForEach(tag =>
             _databaseWrapper.ExecuteDeleteOccurrenceTagByIdTagCommand(
                 savedDishOccurrence.Id, tag));
-        toAdd.ForEach(tag => _ownedLogger.LogTrace("Adding tag: {Tag}", tag));
-        toRemove.ForEach(tag => _ownedLogger.LogTrace("Removing tag: {Tag}", tag));
-        savedDishOccurrence.TagUpdate(toAdd, toRemove);
+       savedDishOccurrence.TagUpdate(toAdd, toRemove);
         return true;
     }
 

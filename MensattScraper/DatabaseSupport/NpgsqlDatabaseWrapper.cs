@@ -332,29 +332,34 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(dayTag.Timestamp);
 
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["kj"], Converter.BigFloatStringToInt(item.Kj));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["kcal"],
-            Converter.BigFloatStringToInt(item.Kcal));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fat"], Converter.FloatStringToInt(item.Fett));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["saturated_fat"],
-            Converter.FloatStringToInt(item.Gesfett));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["carbohydrates"],
-            Converter.FloatStringToInt(item.Kh));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["sugar"],
-            Converter.FloatStringToInt(item.Zucker));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fiber"],
-            Converter.FloatStringToInt(item.Ballaststoffe));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["protein"],
-            Converter.FloatStringToInt(item.Eiweiss));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["salt"], Converter.FloatStringToInt(item.Salz));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_student"],
-            Converter.FloatStringToInt(item.Preis1));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_staff"],
-            Converter.FloatStringToInt(item.Preis2));
-        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["price_guest"],
-            Converter.FloatStringToInt(item.Preis3));
+        SetItemContentParameters(_insertOccurrenceCommand, item);
 
         return (Guid?) _insertOccurrenceCommand.ExecuteScalar();
+    }
+
+    private static void SetItemContentParameters(NpgsqlCommand command, Item item)
+    {
+        SetParameterToValueOrNull(command.Parameters["kj"], Converter.BigFloatStringToInt(item.Kj));
+        SetParameterToValueOrNull(command.Parameters["kcal"],
+            Converter.BigFloatStringToInt(item.Kcal));
+        SetParameterToValueOrNull(command.Parameters["fat"], Converter.FloatStringToInt(item.Fett));
+        SetParameterToValueOrNull(command.Parameters["saturated_fat"],
+            Converter.FloatStringToInt(item.Gesfett));
+        SetParameterToValueOrNull(command.Parameters["carbohydrates"],
+            Converter.FloatStringToInt(item.Kh));
+        SetParameterToValueOrNull(command.Parameters["sugar"],
+            Converter.FloatStringToInt(item.Zucker));
+        SetParameterToValueOrNull(command.Parameters["fiber"],
+            Converter.FloatStringToInt(item.Ballaststoffe));
+        SetParameterToValueOrNull(command.Parameters["protein"],
+            Converter.FloatStringToInt(item.Eiweiss));
+        SetParameterToValueOrNull(command.Parameters["salt"], Converter.FloatStringToInt(item.Salz));
+        SetParameterToValueOrNull(command.Parameters["price_student"],
+            Converter.FloatStringToInt(item.Preis1));
+        SetParameterToValueOrNull(command.Parameters["price_staff"],
+            Converter.FloatStringToInt(item.Preis2));
+        SetParameterToValueOrNull(command.Parameters["price_guest"],
+            Converter.FloatStringToInt(item.Preis3));
     }
 
     public Guid? ExecuteInsertDishAliasCommand(string? dishName, Guid dish)
@@ -377,18 +382,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public void ExecuteUpdateOccurrenceContentsByIdCommand(Guid occurrenceId, Item i)
     {
-        _updateOccurrenceContentsByIdCommand.Parameters["kj"].Value = Converter.BigFloatStringToInt(i.Kj);
-        _updateOccurrenceContentsByIdCommand.Parameters["kcal"].Value = Converter.BigFloatStringToInt(i.Kcal);
-        _updateOccurrenceContentsByIdCommand.Parameters["fat"].Value = Converter.FloatStringToInt(i.Fett);
-        _updateOccurrenceContentsByIdCommand.Parameters["saturated_fat"].Value = Converter.FloatStringToInt(i.Gesfett);
-        _updateOccurrenceContentsByIdCommand.Parameters["carbohydrates"].Value = Converter.FloatStringToInt(i.Kh);
-        _updateOccurrenceContentsByIdCommand.Parameters["sugar"].Value = Converter.FloatStringToInt(i.Zucker);
-        _updateOccurrenceContentsByIdCommand.Parameters["fiber"].Value = Converter.FloatStringToInt(i.Ballaststoffe);
-        _updateOccurrenceContentsByIdCommand.Parameters["protein"].Value = Converter.FloatStringToInt(i.Eiweiss);
-        _updateOccurrenceContentsByIdCommand.Parameters["salt"].Value = Converter.FloatStringToInt(i.Salz);
-        _updateOccurrenceContentsByIdCommand.Parameters["price_student"].Value = Converter.FloatStringToInt(i.Preis1);
-        _updateOccurrenceContentsByIdCommand.Parameters["price_staff"].Value = Converter.FloatStringToInt(i.Preis2);
-        _updateOccurrenceContentsByIdCommand.Parameters["price_guest"].Value = Converter.FloatStringToInt(i.Preis3);
+        SetItemContentParameters(_updateOccurrenceContentsByIdCommand, i);
 
         _updateOccurrenceContentsByIdCommand.Parameters["id"].Value = occurrenceId;
 

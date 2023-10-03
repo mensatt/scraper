@@ -112,6 +112,11 @@ public static class CompareUtil
         var toAdd = itemTags.Except(occurrenceTags).ToList();
         var toRemove = occurrenceTags.Except(itemTags).ToList();
 
+        if (toAdd.Count != 0)
+            logger?.LogTrace("toAdd: {ToAdd}", string.Join(", ", toAdd));
+        if (toRemove.Count != 0)
+            logger?.LogTrace("toRemove: {ToRemove}", string.Join(", ", toRemove));
+
         return (toAdd, toRemove);
     }
 }
