@@ -132,6 +132,9 @@ public static class Converter
             ? Array.Empty<string>()
             : PictogramRegex.Matches(pictogram).Select(x => NormalizeTag(x.Value.Trim().ToUpper())).Distinct();
 
+    public static IEnumerable<string> ExtractCombinedTags(string? title, string? pictogram) =>
+        ExtractSingleTagsFromTitle(title).Concat(ExtractTagsFromPictogram(pictogram)).Distinct();
+
     private static string NormalizeTag(string tag) =>
         tag switch
         {
@@ -156,6 +159,11 @@ public static class Converter
         if (int.TryParse(cents.Replace(",", string.Empty).Replace(".", string.Empty), out var ret))
             return ret;
         return null;
+    }
+
+    public static int? BigFloatStringToInt(string? value)
+    {
+        return FloatStringToInt(value) / 10;
     }
 
     public static string?[] GetSideDishes(string? sideDishes) => ExtractElementFromTitle(sideDishes, TitleElement.Name)

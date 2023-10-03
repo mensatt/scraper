@@ -115,11 +115,7 @@ public class Scraper : IDisposable
 
 
             // We fetch the first daily occurrences here, because we have access to this worker's location
-            _dailyOccurrences ??=
-                _databaseWrapper.ExecuteSelectOccurrenceIdNameDateByLocationCommand(
-                    DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId));
-
-            var xyz = _databaseWrapper.RetrieveFullOccurrencesWithTags(
+            _dailyOccurrences ??= _databaseWrapper.RetrieveFullOccurrencesWithTags(
                 DatabaseMapping.GetLocationGuidByLocationId(primaryMenu.LocationId),
                 DateOnly.FromDateTime(DateTime.Now.AddDays(-14)));
 
@@ -221,8 +217,16 @@ public class Scraper : IDisposable
                         // If we got an occurrence with this dish already, do nothing
                         if (savedDishOccurrence is not null)
                         {
-                            _telemetry.PotentialUpdates++;
-                            // _ownedLogger.LogInformation($"Would update {primaryItem.Title}");
+                            if (CompareUtil.Equals(primaryItem, dishUuid, savedDishOccurrence, _ownedLogger))
+                            {
+                                _telemetry.NeedsNoUpdate++;
+                            }
+                            else
+                            {
+                                _telemetry.PotentialUpdates++;
+                                _ownedLogger.LogInformation("Would update {PrimaryItemTitle}", primaryItem.Title);
+                            }
+
                             continue; // Update in the future
                         }
                     }
@@ -239,10 +243,7 @@ public class Scraper : IDisposable
 
                     _dailyOccurrences[currentDay].Add(new(occurrenceUuid, dishUuid));
 
-                    var titleTags = Converter.ExtractSingleTagsFromTitle(primaryItem.Title);
-                    var pictogramTags = Converter.ExtractTagsFromPictogram(primaryItem.Piktogramme);
-
-                    foreach (var tag in titleTags.Concat(pictogramTags).Distinct())
+                    foreach (var tag in Converter.ExtractCombinedTags(primaryItem.Title, primaryItem.Piktogramme))
                     {
                         _telemetry.TotalOccurrenceTagCount++;
                         _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);

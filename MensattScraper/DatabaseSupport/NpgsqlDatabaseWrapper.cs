@@ -301,10 +301,10 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
         _insertOccurrenceCommand.Parameters["location"].Value = locationId;
         _insertOccurrenceCommand.Parameters["dish"].Value = dish;
         _insertOccurrenceCommand.Parameters["date"].Value = Converter.GetDateFromTimestamp(dayTag.Timestamp);
-        var kj = Converter.FloatStringToInt(item.Kj);
-        _insertOccurrenceCommand.Parameters["kj"].Value = kj == null ? DBNull.Value : (int) kj / 10;
-        var kcal = Converter.FloatStringToInt(item.Kcal);
-        _insertOccurrenceCommand.Parameters["kcal"].Value = kcal == null ? DBNull.Value : (int) kcal / 10;
+
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["kj"], Converter.BigFloatStringToInt(item.Kj));
+        SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["kcal"],
+            Converter.BigFloatStringToInt(item.Kcal));
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["fat"], Converter.FloatStringToInt(item.Fett));
         SetParameterToValueOrNull(_insertOccurrenceCommand.Parameters["saturated_fat"],
             Converter.FloatStringToInt(item.Gesfett));
