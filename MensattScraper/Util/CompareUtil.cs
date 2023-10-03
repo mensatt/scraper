@@ -107,6 +107,7 @@ public static class CompareUtil
     {
         var itemTags = Converter.ExtractCombinedTags(i.Title, i.Piktogramme).ToList();
         var occurrenceTags = o.Tags ?? new List<string>();
+        occurrenceTags = occurrenceTags.Select(Converter.NormalizeTag).ToList();
 
         var toAdd = itemTags.Except(occurrenceTags).ToList();
         var toRemove = occurrenceTags.Except(itemTags).ToList();
