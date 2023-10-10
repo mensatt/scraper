@@ -151,7 +151,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     private readonly NpgsqlBatch _commandBatch = new();
 
-    private static NpgsqlBatchCommand InsertOccurrenceTagBatchCommand =>
+    private readonly NpgsqlCommand _insertOccurrenceTagCommand =
         new(DatabaseConstants.InsertOccurrenceTagSql)
         {
             Parameters =
@@ -161,7 +161,7 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             }
         };
 
-    private static NpgsqlBatchCommand InsertOccurrenceSideDishCommand =>
+    private readonly NpgsqlCommand _insertOccurrenceSideDishCommand =
         new(DatabaseConstants.InsertOccurrenceSideDishSql)
         {
             Parameters =
@@ -195,24 +195,18 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
             npgsqlCommand.Prepare();
     }
 
-    public void ResetBatch() => _commandBatch.BatchCommands.Clear();
-
-    public void ExecuteBatch() => _commandBatch.ExecuteNonQuery();
-
-    public void AddInsertOccurrenceTagCommandToBatch(Guid occurrence, string tag)
+    public void ExecuteInsertOccurrenceTagCommand(Guid occurrence, string tag)
     {
-        var command = InsertOccurrenceTagBatchCommand;
-        command.Parameters["occurrence"].Value = occurrence;
-        command.Parameters["tag"].Value = tag;
-        _commandBatch.BatchCommands.Add(command);
+        _insertOccurrenceTagCommand.Parameters["occurrence"].Value = occurrence;
+        _insertOccurrenceTagCommand.Parameters["tag"].Value = tag;
+        _insertOccurrenceTagCommand.ExecuteNonQuery();
     }
 
-    public void AddInsertOccurrenceSideDishCommandToBatch(Guid occurrence, Guid sideDish)
+    public void ExecuteInsertOccurrenceSideDishCommand(Guid occurrence, Guid sideDish)
     {
-        var command = InsertOccurrenceSideDishCommand;
-        command.Parameters["occurrence"].Value = occurrence;
-        command.Parameters["dish"].Value = sideDish;
-        _commandBatch.BatchCommands.Add(command);
+        _insertOccurrenceSideDishCommand.Parameters["occurrence"].Value = occurrence;
+        _insertOccurrenceSideDishCommand.Parameters["dish"].Value = sideDish;
+        _insertOccurrenceSideDishCommand.ExecuteNonQuery();
     }
 
     public Guid? ExecuteSelectDishByGermanNameCommand(string? name)
@@ -309,7 +303,10 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
                 _selectOccurrenceTagsByIdCommand.Parameters["id"].Value = occurrence.Id;
                 using var tagReader = _selectOccurrenceTagsByIdCommand.ExecuteReader();
                 occurrence.Tags = new();
-                while (tagReader.Read()) occurrence.Tags.Add(tagReader.GetString("tag"));
+                while (tagReader.Read())
+                {
+                    occurrence.Tags.Add(tagReader.GetString("tag"));
+                }
             }
         }
 

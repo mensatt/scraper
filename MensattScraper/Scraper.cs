@@ -182,7 +182,6 @@ public class Scraper : IDisposable
                     firstPullOfTheDay = false;
                 }
 
-                _databaseWrapper.ResetBatch();
 
                 // This list saves all *dish* ids, which were handled for a given day and ignores them in the update
                 // step below.
@@ -255,7 +254,6 @@ public class Scraper : IDisposable
                                 _telemetry.ConfirmedUpdates++;
                             }
 
-                            _databaseWrapper.ExecuteBatch();
                             continue;
                         }
                     }
@@ -275,7 +273,7 @@ public class Scraper : IDisposable
                     foreach (var tag in Converter.ExtractCombinedTags(primaryItem.Title, primaryItem.Piktogramme))
                     {
                         _telemetry.TotalOccurrenceTagCount++;
-                        _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(occurrenceUuid, tag);
+                        _databaseWrapper.ExecuteInsertOccurrenceTagCommand(occurrenceUuid, tag);
                     }
 
                     #region Side dish checks
@@ -303,8 +301,10 @@ public class Scraper : IDisposable
                     {
                         _telemetry.TotalSideDishCount++;
                         var sideDishUuid = InsertDishIfNotExists(primarySideDish, secondarySideDish);
-                        _databaseWrapper.AddInsertOccurrenceSideDishCommandToBatch(occurrenceUuid, sideDishUuid);
+                        _databaseWrapper.ExecuteInsertOccurrenceSideDishCommand(occurrenceUuid, sideDishUuid);
                     }
+
+
                 }
 
                 foreach (var dishId in dishesOfPreviousPull)
@@ -322,7 +322,6 @@ public class Scraper : IDisposable
                     _databaseWrapper.ExecuteUpdateOccurrenceNotAvailableAfterByIdCommand(occ.Id, DateTime.UtcNow);
                 }
 
-                _databaseWrapper.ExecuteBatch();
             }
 
             _ownedLogger.LogInformation("Scraping took {TimerElapsedMilliseconds}ms, going to sleep",
@@ -349,7 +348,7 @@ public class Scraper : IDisposable
         toRemove.ForEach(tag => _ownedLogger.LogTrace("Removing tag: {Tag}", tag));
 
         toAdd.ForEach(tag =>
-            _databaseWrapper.AddInsertOccurrenceTagCommandToBatch(savedDishOccurrence.Id,
+            _databaseWrapper.ExecuteInsertOccurrenceTagCommand(savedDishOccurrence.Id,
                 tag));
         toRemove.ForEach(tag =>
             _databaseWrapper.ExecuteDeleteOccurrenceTagByIdTagCommand(

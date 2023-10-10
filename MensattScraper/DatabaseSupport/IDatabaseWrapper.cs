@@ -6,10 +6,8 @@ namespace MensattScraper.DatabaseSupport;
 public interface IDatabaseWrapper
 {
     void ConnectAndPrepare();
-    void ResetBatch();
-    void ExecuteBatch();
-    void AddInsertOccurrenceTagCommandToBatch(Guid occurrence, string tag);
-    void AddInsertOccurrenceSideDishCommandToBatch(Guid occurrence, Guid sideDish);
+    void ExecuteInsertOccurrenceTagCommand(Guid occurrence, string tag);
+    void ExecuteInsertOccurrenceSideDishCommand(Guid occurrence, Guid sideDish);
     Guid? ExecuteSelectDishByGermanNameCommand(string? name);
     Guid? ExecuteSelectDishNormalizedAliasByNameCommand(string? name);
     Dictionary<DateOnly, List<Occurrence>> ExecuteSelectOccurrenceIdNameDateByLocationCommand(Guid locationId);
