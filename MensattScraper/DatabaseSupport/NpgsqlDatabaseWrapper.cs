@@ -197,9 +197,17 @@ public class NpgsqlDatabaseWrapper : IDatabaseWrapper
 
     public void ExecuteInsertOccurrenceTagCommand(Guid occurrence, string tag)
     {
-        _insertOccurrenceTagCommand.Parameters["occurrence"].Value = occurrence;
-        _insertOccurrenceTagCommand.Parameters["tag"].Value = tag;
-        _insertOccurrenceTagCommand.ExecuteNonQuery();
+        try
+        {
+            _insertOccurrenceTagCommand.Parameters["occurrence"].Value = occurrence;
+            _insertOccurrenceTagCommand.Parameters["tag"].Value = tag;
+            _insertOccurrenceTagCommand.ExecuteNonQuery();
+        }
+        catch (PostgresException pe)
+        {
+            // TODO: Diagnose
+            SharedLogger.LogError(pe, "Error while inserting tag {Tag} for occurrence {Occurrence}", tag, occurrence);
+        }
     }
 
     public void ExecuteInsertOccurrenceSideDishCommand(Guid occurrence, Guid sideDish)
