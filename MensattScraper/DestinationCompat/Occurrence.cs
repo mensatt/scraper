@@ -51,6 +51,7 @@ public class Occurrence
 
     public void TagUpdate(List<string> toAdd, List<string> toRemove)
     {
+        Tags ??= new();
         toAdd.ForEach(tag => Tags?.Add(tag));
         toRemove.ForEach(tag => Tags?.Remove(tag));
     }
