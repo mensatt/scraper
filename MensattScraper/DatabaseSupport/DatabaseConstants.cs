@@ -17,7 +17,7 @@ internal static class DatabaseConstants
         " AND date>=@date";
 
     internal const string SelectOccurrenceTagsByIdSql =
-        "SELECT ot.tag FROM occurrence o JOIN occurrences_tags ot on o.id = ot.occurrence" +
+        "SELECT ot.tag FROM occurrences o JOIN occurrences_tags ot on o.id = ot.occurrence" +
         " WHERE o.id = @id";
 
     internal const string SelectLocationIdNameLocationIdSql = "SELECT id, name, external_id FROM locations";
